@@ -1,3 +1,5 @@
+![Screenshot](https://raw.githubusercontent.com/laravilt/forms/master/arts/cover.jpg)
+
 # Laravilt Forms
 
 Beautiful form components for Laravilt with validation, RTL support, and multi-platform serialization.
