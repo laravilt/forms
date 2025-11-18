@@ -1,0 +1,21 @@
+{
+  "resources/css/forms.css": {
+    "file": "assets/forms-S7RWu03X.css",
+    "src": "resources/css/forms.css",
+    "isEntry": true,
+    "name": "forms",
+    "names": [
+      "forms.css"
+    ]
+  },
+  "resources/js/index.js": {
+    "file": "assets/index-JexgmxD4.js",
+    "name": "index",
+    "src": "resources/js/index.js",
+    "isEntry": true,
+    "css": [
+      "assets/index-fudgq9S6.css",
+      "assets/forms-S7RWu03X.css"
+    ]
+  }
+}
