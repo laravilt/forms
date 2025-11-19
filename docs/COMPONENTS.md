@@ -236,31 +236,159 @@ Toggle::make('notifications')
 
 **Location**: `src/Components/DatePicker.php`
 
-Date picker with advanced features.
+Modern date picker with month/year dropdown selectors for easy navigation.
 
 **Features**:
-- Single date or date range
-- Min/max dates
-- Disabled dates
-- Custom date format
-- Time picker option
-- First day of week configuration
+- Single date selection
+- Month/year dropdown selectors (50 years back, 10 years forward)
+- Min/max date constraints
+- Locale support
+- Centered date text
+- Keyboard navigation
+- ARIA accessible
 
 **Example**:
 ```php
 DatePicker::make('birth_date')
-    ->format('Y-m-d')
-    ->displayFormat('M d, Y')
-    ->maxDate(now())
+    ->label('Date of Birth')
+    ->maxDate(now()->subYears(18))
+    ->minDate(now()->subYears(100))
+    ->required()
+    ->helperText('You must be 18 or older')
+```
+
+**With Min/Max Constraints**:
+```php
+DatePicker::make('appointment_date')
+    ->minDate(now())
+    ->maxDate(now()->addDays(30))
+    ->placeholder('Select appointment date')
+```
+
+**Props**:
+- `minDate(?string $date)` - Minimum selectable date (Y-m-d format)
+- `maxDate(?string $date)` - Maximum selectable date (Y-m-d format)
+- `locale(string $locale)` - Calendar locale (default: 'en')
+- `placeholder(string $text)` - Placeholder text
+
+---
+
+### DateTimePicker
+
+**Location**: `src/Components/DateTimePicker.php`
+
+Date and time picker with 24-hour format support and month/year selectors.
+
+**Features**:
+- Date and time selection
+- 24-hour time format (configurable)
+- Month/year dropdown selectors
+- Minute granularity
+- Min/max datetime constraints
+- Locale support
+
+**Example**:
+```php
+DateTimePicker::make('meeting_time')
+    ->label('Meeting Date & Time')
+    ->hourCycle(24)  // 24-hour format
+    ->required()
+    ->minDate(now()->toDateTimeString())
+```
+
+**With 12-hour Format**:
+```php
+DateTimePicker::make('appointment')
+    ->hourCycle(12)  // 12-hour format with AM/PM
+    ->placeholder('Select date and time')
+```
+
+**Props**:
+- `hourCycle(int $cycle)` - Time format: 12 or 24 (default: 24)
+- `minDate(?string $date)` - Minimum datetime (Y-m-d H:i format)
+- `maxDate(?string $date)` - Maximum datetime (Y-m-d H:i format)
+- `locale(string $locale)` - Calendar locale
+
+---
+
+### DateRangePicker
+
+**Location**: `src/Components/DateRangePicker.php`
+
+Date range picker with connected selection highlighting.
+
+**Features**:
+- Start and end date selection
+- Connected visual range (highlighted dates between)
+- Month/year dropdown selectors
+- Multiple month display (configurable)
+- Close on select option
+- Min/max constraints
+
+**Example**:
+```php
+DateRangePicker::make('vacation_dates')
+    ->label('Vacation Period')
+    ->numberOfMonths(2)  // Show 2 months
+    ->closeOnSelect(false)  // Keep open after selecting
+    ->minDate(now())
     ->required()
 ```
 
-**Range Example**:
+**With Auto-Close**:
 ```php
-DatePicker::make('event_dates')
-    ->range()
-    ->minDate(now())
+DateRangePicker::make('project_timeline')
+    ->numberOfMonths(1)
+    ->closeOnSelect(true)  // Close after end date selected
 ```
+
+**Props**:
+- `numberOfMonths(int $count)` - Number of months to display (default: 2)
+- `closeOnSelect(bool $close)` - Auto-close after selection (default: false)
+- `minDate(?string $date)` - Minimum selectable date
+- `maxDate(?string $date)` - Maximum selectable date
+- `locale(string $locale)` - Calendar locale
+
+**Value Format**:
+Returns an array with `start` and `end` keys:
+```php
+[
+    'start' => '2024-01-15',
+    'end' => '2024-01-20',
+]
+```
+
+---
+
+### TimePicker
+
+**Location**: `src/Components/TimePicker.php`
+
+Simple time input using native HTML5 time picker.
+
+**Features**:
+- Hour and minute selection
+- Granularity control (hour, minute, second)
+- Native browser UI
+- 12/24 hour format based on locale
+
+**Example**:
+```php
+TimePicker::make('preferred_time')
+    ->label('Preferred Contact Time')
+    ->granularity('minute')  // hour, minute, or second
+    ->placeholder('Select time')
+```
+
+**With Second Precision**:
+```php
+TimePicker::make('exact_time')
+    ->granularity('second')
+    ->required()
+```
+
+**Props**:
+- `granularity(string $level)` - Time precision: 'hour', 'minute', or 'second' (default: 'minute')
 
 ---
 
