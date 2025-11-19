@@ -4,92 +4,47 @@ namespace Laravilt\Forms\Components;
 
 use Closure;
 
-/**
- * Markdown Editor Component
- *
- * A markdown editor with support for:
- * - Live preview
- * - Syntax highlighting
- * - Toolbar shortcuts
- * - File uploads
- * - Split view (editor + preview)
- */
 class MarkdownEditor extends Field
 {
     protected string $view = 'laravilt-forms::components.fields.markdown-editor';
 
-    /**
-     * Whether to show live preview.
-     */
-    protected bool|Closure $livePreview = true;
+    protected bool $preview = true;
+
+    protected bool $showCharacterCount = false;
+
+    protected bool $showWordCount = false;
+
+    protected bool|Closure $fileAttachmentsEnabled = false;
+
+    protected string|Closure|null $fileAttachmentsDisk = null;
+
+    protected string|Closure|null $fileAttachmentsDirectory = null;
+
+    protected array|Closure $fileAttachmentsAcceptedFileTypes = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
+
+    protected int|Closure $fileAttachmentsMaxSize = 12288; // 12 MB in KB
+
+    protected array|Closure $toolbarButtons = [
+        ['bold', 'italic', 'strike', 'link'],
+        ['heading'],
+        ['blockquote', 'codeBlock', 'bulletList', 'orderedList'],
+        ['table', 'attachFiles'],
+        ['undo', 'redo'],
+    ];
 
     /**
-     * Whether to use split view.
+     * Enable/disable preview mode.
      */
-    protected bool|Closure $splitView = false;
-
-    /**
-     * Whether to enable file uploads.
-     */
-    protected bool|Closure $uploads = false;
-
-    /**
-     * Toolbar buttons to show.
-     */
-    protected array|Closure|null $toolbarButtons = null;
-
-    /**
-     * Minimum height in pixels.
-     */
-    protected int|Closure|null $minHeight = null;
-
-    /**
-     * Maximum height in pixels.
-     */
-    protected int|Closure|null $maxHeight = null;
-
-    /**
-     * Whether to show character count.
-     */
-    protected bool|Closure $showCharacterCount = false;
-
-    /**
-     * Whether to show word count.
-     */
-    protected bool|Closure $showWordCount = false;
-
-    /**
-     * Enable/disable live preview.
-     */
-    public function livePreview(bool|Closure $condition = true): static
+    public function preview(bool $condition = true): static
     {
-        $this->livePreview = $condition;
+        $this->preview = $condition;
 
         return $this;
     }
 
     /**
-     * Enable/disable split view.
-     */
-    public function splitView(bool|Closure $condition = true): static
-    {
-        $this->splitView = $condition;
-
-        return $this;
-    }
-
-    /**
-     * Enable/disable file uploads.
-     */
-    public function uploads(bool|Closure $condition = true): static
-    {
-        $this->uploads = $condition;
-
-        return $this;
-    }
-
-    /**
-     * Set custom toolbar buttons.
+     * Customize the toolbar buttons.
+     * Each nested array represents a group of buttons.
      */
     public function toolbarButtons(array|Closure $buttons): static
     {
@@ -99,21 +54,63 @@ class MarkdownEditor extends Field
     }
 
     /**
-     * Set minimum height.
+     * Disable all toolbar buttons.
      */
-    public function minHeight(int|Closure $height): static
+    public function disableAllToolbarButtons(): static
     {
-        $this->minHeight = $height;
+        $this->toolbarButtons = [];
 
         return $this;
     }
 
     /**
-     * Set maximum height.
+     * Enable file attachments (images).
      */
-    public function maxHeight(int|Closure $height): static
+    public function fileAttachments(bool|Closure $condition = true): static
     {
-        $this->maxHeight = $height;
+        $this->fileAttachmentsEnabled = $condition;
+
+        return $this;
+    }
+
+    /**
+     * Set the disk for file attachments.
+     */
+    public function fileAttachmentsDisk(string|Closure $disk): static
+    {
+        $this->fileAttachmentsDisk = $disk;
+        $this->fileAttachmentsEnabled = true;
+
+        return $this;
+    }
+
+    /**
+     * Set the directory for file attachments.
+     */
+    public function fileAttachmentsDirectory(string|Closure $directory): static
+    {
+        $this->fileAttachmentsDirectory = $directory;
+        $this->fileAttachmentsEnabled = true;
+
+        return $this;
+    }
+
+    /**
+     * Set accepted file types for attachments.
+     */
+    public function fileAttachmentsAcceptedFileTypes(array|Closure $types): static
+    {
+        $this->fileAttachmentsAcceptedFileTypes = $types;
+
+        return $this;
+    }
+
+    /**
+     * Set maximum file size for attachments in kilobytes.
+     */
+    public function fileAttachmentsMaxSize(int|Closure $size): static
+    {
+        $this->fileAttachmentsMaxSize = $size;
 
         return $this;
     }
@@ -121,7 +118,7 @@ class MarkdownEditor extends Field
     /**
      * Show character count.
      */
-    public function showCharacterCount(bool|Closure $condition = true): static
+    public function showCharacterCount(bool $condition = true): static
     {
         $this->showCharacterCount = $condition;
 
@@ -131,75 +128,70 @@ class MarkdownEditor extends Field
     /**
      * Show word count.
      */
-    public function showWordCount(bool|Closure $condition = true): static
+    public function showWordCount(bool $condition = true): static
     {
         $this->showWordCount = $condition;
 
         return $this;
     }
 
-    /**
-     * Check if live preview is enabled.
-     */
-    public function hasLivePreview(): bool
+    protected function getVueComponent(): string
     {
-        return $this->evaluate($this->livePreview);
+        return 'MarkdownEditor';
     }
 
-    /**
-     * Check if split view is enabled.
-     */
-    public function hasSplitView(): bool
+    protected function getVueProps(): array
     {
-        return $this->evaluate($this->splitView);
+        return array_merge([
+            'placeholder' => $this->placeholder,
+            'preview' => $this->preview,
+            'showCharacterCount' => $this->showCharacterCount,
+            'showWordCount' => $this->showWordCount,
+            'toolbarButtons' => $this->evaluate($this->toolbarButtons),
+            'fileAttachmentsEnabled' => $this->evaluate($this->fileAttachmentsEnabled),
+            'fileAttachmentsDisk' => $this->evaluate($this->fileAttachmentsDisk) ?? 'public',
+            'fileAttachmentsDirectory' => $this->evaluate($this->fileAttachmentsDirectory) ?? 'attachments',
+            'fileAttachmentsAcceptedFileTypes' => $this->evaluate($this->fileAttachmentsAcceptedFileTypes),
+            'fileAttachmentsMaxSize' => $this->evaluate($this->fileAttachmentsMaxSize),
+            'required' => $this->isRequired(),
+            'rules' => $this->getValidationRules(),
+            'defaultValue' => $this->getState(),
+        ], $this->getIconProps());
     }
 
-    /**
-     * Check if uploads are enabled.
-     */
-    public function hasUploads(): bool
+    protected function getFlutterWidget(): string
     {
-        return $this->evaluate($this->uploads);
+        return 'LaraviltMarkdownEditor';
     }
 
-    /**
-     * Get toolbar buttons.
-     */
-    public function getToolbarButtons(): ?array
+    protected function getFlutterWidgetProps(): array
     {
-        return $this->evaluate($this->toolbarButtons);
+        return [
+            'placeholder' => $this->placeholder,
+            'preview' => $this->preview,
+            'toolbarButtons' => $this->evaluate($this->toolbarButtons),
+            'fileAttachmentsEnabled' => $this->evaluate($this->fileAttachmentsEnabled),
+            'fileAttachmentsDisk' => $this->evaluate($this->fileAttachmentsDisk) ?? 'public',
+            'fileAttachmentsDirectory' => $this->evaluate($this->fileAttachmentsDirectory) ?? 'attachments',
+            'fileAttachmentsAcceptedFileTypes' => $this->evaluate($this->fileAttachmentsAcceptedFileTypes),
+            'fileAttachmentsMaxSize' => $this->evaluate($this->fileAttachmentsMaxSize),
+            'required' => $this->isRequired(),
+            'validators' => $this->getValidationRules(),
+            'initialValue' => $this->getState(),
+        ];
     }
 
-    /**
-     * Check if character count should be shown.
-     */
-    public function shouldShowCharacterCount(): bool
-    {
-        return $this->evaluate($this->showCharacterCount);
-    }
-
-    /**
-     * Check if word count should be shown.
-     */
-    public function shouldShowWordCount(): bool
-    {
-        return $this->evaluate($this->showWordCount);
-    }
-
-    /**
-     * Serialize component for Laravilt (Blade + Vue.js).
-     */
     public function toLaraviltProps(): array
     {
         return array_merge(parent::toLaraviltProps(), [
-            'livePreview' => $this->hasLivePreview(),
-            'splitView' => $this->hasSplitView(),
-            'uploads' => $this->hasUploads(),
-            'toolbarButtons' => $this->getToolbarButtons(),
-            'minHeight' => $this->evaluate($this->minHeight),
-            'maxHeight' => $this->evaluate($this->maxHeight),
-            'showCharacterCount' => $this->shouldShowCharacterCount(),
-            'showWordCount' => $this->shouldShowWordCount(),
+            'name' => $this->name,
+            'preview' => $this->preview,
+            'toolbarButtons' => $this->evaluate($this->toolbarButtons),
+            'fileAttachmentsEnabled' => $this->evaluate($this->fileAttachmentsEnabled),
+            'fileAttachmentsDisk' => $this->evaluate($this->fileAttachmentsDisk) ?? 'public',
+            'fileAttachmentsDirectory' => $this->evaluate($this->fileAttachmentsDirectory) ?? 'attachments',
+            'fileAttachmentsAcceptedFileTypes' => $this->evaluate($this->fileAttachmentsAcceptedFileTypes),
+            'fileAttachmentsMaxSize' => $this->evaluate($this->fileAttachmentsMaxSize),
         ]);
     }
 }

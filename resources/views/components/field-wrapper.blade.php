@@ -19,8 +19,17 @@
 
 @php
     $fieldId = $id ?? ($name ? \Illuminate\Support\Str::slug($name) : null);
-    $hasError = $errors && $errors->has($name);
-    $errorMessage = $hasError ? $errors->first($name) : null;
+    // Get errors from passed prop, view shared data, or create empty MessageBag
+    if ($errors !== null) {
+        $errorBag = $errors;
+    } elseif (isset($__env) && method_exists($__env, 'getShared')) {
+        $shared = $__env->getShared();
+        $errorBag = $shared['errors'] ?? new \Illuminate\Support\MessageBag();
+    } else {
+        $errorBag = new \Illuminate\Support\MessageBag();
+    }
+    $hasError = $errorBag && method_exists($errorBag, 'has') && $errorBag->has($name);
+    $errorMessage = $hasError ? $errorBag->first($name) : null;
 
     // Column span classes
     $columnSpanClass = match($columnSpan) {
@@ -67,7 +76,7 @@
             <label
                 for="{{ $fieldId }}"
                 @class([
-                    'block text-sm font-medium text-gray-900 dark:text-white',
+                    'block text-sm font-medium leading-none select-none',
                     'sr-only' => $labelSrOnly,
                 ])
                 {{ (new \Illuminate\View\ComponentAttributeBag($extraLabelAttributes)) }}
@@ -75,11 +84,11 @@
                 {{ $label }}
 
                 @if($required)
-                    <span class="text-red-500 ml-0.5" aria-label="required">*</span>
+                    <span class="text-destructive ml-0.5" aria-label="required">*</span>
                 @endif
 
                 @if($hint)
-                    <span class="text-xs text-gray-500 ml-2 font-normal">{{ $hint }}</span>
+                    <span class="text-xs text-muted-foreground ml-2 font-normal">{{ $hint }}</span>
                 @endif
             </label>
 
@@ -141,14 +150,14 @@
 
     {{-- Helper Text --}}
     @if($helperText && !$hasError)
-        <p class="mt-1.5 text-xs text-gray-500 dark:text-gray-400">
+        <p class="mt-1.5 text-xs text-muted-foreground">
             {{ $helperText }}
         </p>
     @endif
 
     {{-- Error Message --}}
     @if($hasError && $errorMessage)
-        <p class="mt-1.5 text-xs text-red-600 dark:text-red-400" role="alert">
+        <p class="mt-1.5 text-sm text-destructive" role="alert">
             {{ $errorMessage }}
         </p>
     @endif

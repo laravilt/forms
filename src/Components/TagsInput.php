@@ -4,54 +4,25 @@ namespace Laravilt\Forms\Components;
 
 use Closure;
 
-/**
- * Tags Input Component
- *
- * A tags input field with support for:
- * - Adding/removing tags
- * - Suggestions from predefined list
- * - Validation per tag
- * - Minimum/maximum number of tags
- * - Custom separators
- */
 class TagsInput extends Field
 {
     protected string $view = 'laravilt-forms::components.fields.tags-input';
 
-    /**
-     * Predefined tag suggestions.
-     */
+    protected string $separator = ',';
+
     protected array|Closure $suggestions = [];
 
-    /**
-     * Minimum number of tags.
-     */
-    protected int|Closure|null $minTags = null;
+    protected ?int $maxTags = null;
 
     /**
-     * Maximum number of tags.
+     * Set the tag separator.
      */
-    protected int|Closure|null $maxTags = null;
+    public function separator(string $separator): static
+    {
+        $this->separator = $separator;
 
-    /**
-     * Tag separators (e.g., comma, space).
-     */
-    protected array|Closure $separators = [',', 'Enter'];
-
-    /**
-     * Whether tags are case sensitive.
-     */
-    protected bool|Closure $caseSensitive = false;
-
-    /**
-     * Whether to allow duplicate tags.
-     */
-    protected bool|Closure $allowDuplicates = false;
-
-    /**
-     * Tag validation pattern.
-     */
-    protected string|Closure|null $tagPattern = null;
+        return $this;
+    }
 
     /**
      * Set tag suggestions.
@@ -64,118 +35,69 @@ class TagsInput extends Field
     }
 
     /**
-     * Set minimum number of tags.
-     */
-    public function minTags(int|Closure $min): static
-    {
-        $this->minTags = $min;
-
-        return $this;
-    }
-
-    /**
      * Set maximum number of tags.
      */
-    public function maxTags(int|Closure $max): static
+    public function maxTags(?int $maxTags): static
     {
-        $this->maxTags = $max;
+        $this->maxTags = $maxTags;
 
         return $this;
     }
 
     /**
-     * Set tag separators.
+     * Get the suggestions array.
      */
-    public function separators(array|Closure $separators): static
+    protected function getSuggestions(): array
     {
-        $this->separators = $separators;
+        if ($this->suggestions instanceof Closure) {
+            return ($this->suggestions)();
+        }
 
-        return $this;
+        return $this->suggestions;
     }
 
-    /**
-     * Make tags case sensitive.
-     */
-    public function caseSensitive(bool|Closure $condition = true): static
+    protected function getVueComponent(): string
     {
-        $this->caseSensitive = $condition;
-
-        return $this;
+        return 'TagsInput';
     }
 
-    /**
-     * Allow duplicate tags.
-     */
-    public function allowDuplicates(bool|Closure $condition = true): static
+    protected function getVueProps(): array
     {
-        $this->allowDuplicates = $condition;
-
-        return $this;
+        return array_merge([
+            'placeholder' => $this->placeholder,
+            'disabled' => $this->disabled,
+            'separator' => $this->separator,
+            'suggestions' => $this->getSuggestions(),
+            'required' => $this->isRequired(),
+            'rules' => $this->getValidationRules(),
+            'defaultValue' => $this->getState() ?? [],
+        ], $this->getIconProps());
     }
 
-    /**
-     * Set tag validation pattern (regex).
-     */
-    public function tagPattern(string|Closure $pattern): static
+    protected function getFlutterWidget(): string
     {
-        $this->tagPattern = $pattern;
-
-        return $this;
+        return 'LaraviltTagsInput';
     }
 
-    /**
-     * Get tag suggestions.
-     */
-    public function getSuggestions(): array
+    protected function getFlutterWidgetProps(): array
     {
-        return $this->evaluate($this->suggestions);
+        return [
+            'placeholder' => $this->placeholder,
+            'enabled' => ! $this->disabled,
+            'separator' => $this->separator,
+            'suggestions' => $this->getSuggestions(),
+            'required' => $this->isRequired(),
+            'validators' => $this->getValidationRules(),
+            'initialValue' => $this->getState() ?? [],
+        ];
     }
 
-    /**
-     * Get tag separators.
-     */
-    public function getSeparators(): array
-    {
-        return $this->evaluate($this->separators);
-    }
-
-    /**
-     * Check if tags are case sensitive.
-     */
-    public function isCaseSensitive(): bool
-    {
-        return $this->evaluate($this->caseSensitive);
-    }
-
-    /**
-     * Check if duplicate tags are allowed.
-     */
-    public function allowsDuplicates(): bool
-    {
-        return $this->evaluate($this->allowDuplicates);
-    }
-
-    /**
-     * Get tag validation pattern.
-     */
-    public function getTagPattern(): ?string
-    {
-        return $this->evaluate($this->tagPattern);
-    }
-
-    /**
-     * Serialize component for Laravilt (Blade + Vue.js).
-     */
     public function toLaraviltProps(): array
     {
         return array_merge(parent::toLaraviltProps(), [
+            'name' => $this->name,
+            'separator' => $this->separator,
             'suggestions' => $this->getSuggestions(),
-            'minTags' => $this->evaluate($this->minTags),
-            'maxTags' => $this->evaluate($this->maxTags),
-            'separators' => $this->getSeparators(),
-            'caseSensitive' => $this->isCaseSensitive(),
-            'allowDuplicates' => $this->allowsDuplicates(),
-            'tagPattern' => $this->getTagPattern(),
         ]);
     }
 }

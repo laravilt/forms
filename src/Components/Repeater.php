@@ -4,79 +4,32 @@ namespace Laravilt\Forms\Components;
 
 use Closure;
 
-/**
- * Repeater Component
- *
- * A repeater field for creating dynamic lists of fields with support for:
- * - Nested field schemas
- * - Add/remove items
- * - Reordering items
- * - Collapsible items
- * - Item labels
- */
 class Repeater extends Field
 {
     protected string $view = 'laravilt-forms::components.fields.repeater';
 
-    /**
-     * The repeater's field schema.
-     */
-    protected array $schema = [];
+    protected array|Closure $schema = [];
+
+    protected string $addButtonLabel = 'Add';
+
+    protected string $deleteButtonLabel = 'Delete';
+
+    protected bool $reorderable = false;
+
+    protected bool $collapsible = false;
+
+    protected bool $cloneable = false;
+
+    protected bool $deletable = true;
+
+    protected ?int $minItems = null;
+
+    protected ?int $maxItems = null;
 
     /**
-     * Minimum number of items.
+     * Set the field schema.
      */
-    protected int|Closure|null $minItems = null;
-
-    /**
-     * Maximum number of items.
-     */
-    protected int|Closure|null $maxItems = null;
-
-    /**
-     * Default number of items.
-     */
-    protected int|Closure $defaultItems = 0;
-
-    /**
-     * Whether items can be reordered.
-     */
-    protected bool|Closure $orderable = true;
-
-    /**
-     * Whether items are collapsible.
-     */
-    protected bool|Closure $collapsible = false;
-
-    /**
-     * Whether items are collapsed by default.
-     */
-    protected bool|Closure $collapsed = false;
-
-    /**
-     * The add button label.
-     */
-    protected string|Closure|null $addButtonLabel = null;
-
-    /**
-     * Closure to generate item labels.
-     */
-    protected ?Closure $itemLabel = null;
-
-    /**
-     * Whether to show item numbers.
-     */
-    protected bool|Closure $showItemNumbers = true;
-
-    /**
-     * Grid columns for the repeater items.
-     */
-    protected int|Closure $gridColumns = 1;
-
-    /**
-     * Set the repeater schema.
-     */
-    public function schema(array $schema): static
+    public function schema(array|Closure $schema): static
     {
         $this->schema = $schema;
 
@@ -84,78 +37,9 @@ class Repeater extends Field
     }
 
     /**
-     * Get the repeater schema.
-     */
-    public function getSchema(): array
-    {
-        return $this->schema;
-    }
-
-    /**
-     * Set minimum items.
-     */
-    public function minItems(int|Closure $min): static
-    {
-        $this->minItems = $min;
-
-        return $this;
-    }
-
-    /**
-     * Set maximum items.
-     */
-    public function maxItems(int|Closure $max): static
-    {
-        $this->maxItems = $max;
-
-        return $this;
-    }
-
-    /**
-     * Set default number of items.
-     */
-    public function defaultItems(int|Closure $count): static
-    {
-        $this->defaultItems = $count;
-
-        return $this;
-    }
-
-    /**
-     * Enable/disable ordering.
-     */
-    public function orderable(bool|Closure $condition = true): static
-    {
-        $this->orderable = $condition;
-
-        return $this;
-    }
-
-    /**
-     * Make items collapsible.
-     */
-    public function collapsible(bool|Closure $condition = true): static
-    {
-        $this->collapsible = $condition;
-
-        return $this;
-    }
-
-    /**
-     * Set items as collapsed by default.
-     */
-    public function collapsed(bool|Closure $condition = true): static
-    {
-        $this->collapsed = $condition;
-        $this->collapsible = true;
-
-        return $this;
-    }
-
-    /**
      * Set the add button label.
      */
-    public function addButtonLabel(string|Closure $label): static
+    public function addButtonLabel(string $label): static
     {
         $this->addButtonLabel = $label;
 
@@ -163,123 +47,173 @@ class Repeater extends Field
     }
 
     /**
-     * Set the item label generator.
+     * Set the delete button label.
      */
-    public function itemLabel(Closure $callback): static
+    public function deleteButtonLabel(string $label): static
     {
-        $this->itemLabel = $callback;
+        $this->deleteButtonLabel = $label;
 
         return $this;
     }
 
     /**
-     * Show/hide item numbers.
+     * Enable/disable reordering.
      */
-    public function showItemNumbers(bool|Closure $condition = true): static
+    public function reorderable(bool $condition = true): static
     {
-        $this->showItemNumbers = $condition;
+        $this->reorderable = $condition;
 
         return $this;
     }
 
     /**
-     * Set grid columns.
+     * Enable/disable collapsible items.
      */
-    public function gridColumns(int|Closure $columns): static
+    public function collapsible(bool $condition = true): static
     {
-        $this->gridColumns = $columns;
+        $this->collapsible = $condition;
 
         return $this;
     }
 
     /**
-     * Make it a simple repeater (single field).
+     * Enable/disable cloneable items.
      */
-    public function simple(): static
+    public function cloneable(bool $condition = true): static
     {
-        return $this->showItemNumbers(false)
-            ->collapsible(false)
-            ->gridColumns(1);
+        $this->cloneable = $condition;
+
+        return $this;
     }
 
     /**
-     * Check if orderable.
+     * Enable/disable deletable items.
      */
-    public function isOrderable(): bool
+    public function deletable(bool $condition = true): static
     {
-        return $this->evaluate($this->orderable);
+        $this->deletable = $condition;
+
+        return $this;
     }
 
     /**
-     * Check if collapsible.
+     * Set minimum number of items.
      */
-    public function isCollapsible(): bool
+    public function minItems(int $min): static
     {
-        return $this->evaluate($this->collapsible);
+        $this->minItems = $min;
+
+        return $this;
     }
 
     /**
-     * Check if collapsed by default.
+     * Set maximum number of items.
      */
-    public function isCollapsed(): bool
+    public function maxItems(int $max): static
     {
-        return $this->evaluate($this->collapsed);
+        $this->maxItems = $max;
+
+        return $this;
     }
 
     /**
-     * Get add button label.
+     * Get the schema array.
      */
-    public function getAddButtonLabel(): string
+    public function getSchema(): array
     {
-        return $this->evaluate($this->addButtonLabel) ?? 'Add item';
-    }
-
-    /**
-     * Get item label.
-     */
-    public function getItemLabel(int $index, array $state): ?string
-    {
-        if ($this->itemLabel === null) {
-            return null;
+        if ($this->schema instanceof Closure) {
+            return ($this->schema)();
         }
 
-        return call_user_func($this->itemLabel, $state, $index);
+        return $this->schema;
     }
 
-    /**
-     * Check if item numbers should be shown.
-     */
-    public function shouldShowItemNumbers(): bool
+    protected function getVueComponent(): string
     {
-        return $this->evaluate($this->showItemNumbers);
+        return 'Repeater';
     }
 
-    /**
-     * Get grid columns.
-     */
-    public function getGridColumns(): int
+    protected function getVueProps(): array
     {
-        return $this->evaluate($this->gridColumns);
+        // Serialize schema components to their Inertia props
+        $serializedSchema = array_map(function ($component) {
+            if (method_exists($component, 'toInertiaProps')) {
+                return $component->toInertiaProps();
+            }
+
+            return $component;
+        }, $this->getSchema());
+
+        return array_merge([
+            'schema' => $serializedSchema,
+            'addButtonLabel' => $this->addButtonLabel,
+            'deleteButtonLabel' => $this->deleteButtonLabel,
+            'reorderable' => $this->reorderable,
+            'collapsible' => $this->collapsible,
+            'cloneable' => $this->cloneable,
+            'deletable' => $this->deletable,
+            'minItems' => $this->minItems,
+            'maxItems' => $this->maxItems,
+            'required' => $this->isRequired(),
+            'rules' => $this->getValidationRules(),
+            'defaultValue' => $this->getState() ?? [],
+        ], $this->getIconProps());
     }
 
-    /**
-     * Serialize component for Laravilt (Blade + Vue.js).
-     */
+    protected function getFlutterWidget(): string
+    {
+        return 'LaraviltRepeater';
+    }
+
+    protected function getFlutterWidgetProps(): array
+    {
+        // Serialize schema components to their Flutter props
+        $serializedSchema = array_map(function ($component) {
+            if (method_exists($component, 'toFlutterProps')) {
+                return $component->toFlutterProps();
+            }
+
+            return $component;
+        }, $this->getSchema());
+
+        return [
+            'schema' => $serializedSchema,
+            'addButtonLabel' => $this->addButtonLabel,
+            'deleteButtonLabel' => $this->deleteButtonLabel,
+            'reorderable' => $this->reorderable,
+            'collapsible' => $this->collapsible,
+            'cloneable' => $this->cloneable,
+            'deletable' => $this->deletable,
+            'minItems' => $this->minItems,
+            'maxItems' => $this->maxItems,
+            'required' => $this->isRequired(),
+            'validators' => $this->getValidationRules(),
+            'initialValue' => $this->getState() ?? [],
+        ];
+    }
+
     public function toLaraviltProps(): array
     {
+        // Serialize schema components to their Laravilt props for Blade context
+        $serializedSchema = array_map(function ($component) {
+            if (method_exists($component, 'toLaraviltProps')) {
+                return $component->toLaraviltProps();
+            }
+
+            return $component;
+        }, $this->getSchema());
+
         return array_merge(parent::toLaraviltProps(), [
-            'schema' => collect($this->schema)
-                ->map(fn ($component) => $component->toLaraviltProps())
-                ->all(),
-            'minItems' => $this->evaluate($this->minItems),
-            'maxItems' => $this->evaluate($this->maxItems),
-            'defaultItems' => $this->evaluate($this->defaultItems),
-            'orderable' => $this->isOrderable(),
-            'collapsible' => $this->isCollapsible(),
-            'collapsed' => $this->isCollapsed(),
-            'addButtonLabel' => $this->getAddButtonLabel(),
-            'showItemNumbers' => $this->shouldShowItemNumbers(),
-            'gridColumns' => $this->getGridColumns(),
+            'name' => $this->name,
+            'schema' => $serializedSchema,
+            'addButtonLabel' => $this->addButtonLabel,
+            'deleteButtonLabel' => $this->deleteButtonLabel,
+            'reorderable' => $this->reorderable,
+            'collapsible' => $this->collapsible,
+            'cloneable' => $this->cloneable,
+            'deletable' => $this->deletable,
+            'minItems' => $this->minItems,
+            'maxItems' => $this->maxItems,
         ]);
     }
 }

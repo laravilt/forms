@@ -11,14 +11,14 @@ use Closure;
  * - Date and time selection
  * - Timezone support
  * - Min/max datetime validation
- * - 12/24 hour format
+ * - 12/24-hour format
  */
 class DateTimePicker extends Field
 {
     protected string $view = 'laravilt-forms::components.fields.datetime-picker';
 
     /**
-     * Whether to use 24-hour format.
+     * Whether to use a 24-hour format.
      */
     protected bool|Closure $format24Hour = false;
 
@@ -169,4 +169,5 @@ class DateTimePicker extends Field
             'withSeconds' => $this->shouldShowSeconds(),
         ]);
     }
+
 }

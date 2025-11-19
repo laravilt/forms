@@ -4,19 +4,32 @@ namespace Laravilt\Forms\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Laravilt\Forms\Components\Builder;
+use Laravilt\Forms\Components\Builder\Block;
 use Laravilt\Forms\Components\Checkbox;
+use Laravilt\Forms\Components\CodeEditor;
 use Laravilt\Forms\Components\ColorPicker;
 use Laravilt\Forms\Components\DatePicker;
+use Laravilt\Forms\Components\DateRangePicker;
+use Laravilt\Forms\Components\DateTimePicker;
 use Laravilt\Forms\Components\FileUpload;
+use Laravilt\Forms\Components\IconPicker;
 use Laravilt\Forms\Components\KeyValue;
 use Laravilt\Forms\Components\MarkdownEditor;
+use Laravilt\Forms\Components\NumberField;
+use Laravilt\Forms\Components\PinInput;
 use Laravilt\Forms\Components\Radio;
+use Laravilt\Forms\Components\RateInput;
+use Laravilt\Forms\Components\Repeater;
 use Laravilt\Forms\Components\RichEditor;
 use Laravilt\Forms\Components\Select;
+use Laravilt\Forms\Components\Slider;
 use Laravilt\Forms\Components\TagsInput;
 use Laravilt\Forms\Components\Textarea;
 use Laravilt\Forms\Components\TextInput;
+use Laravilt\Forms\Components\TimePicker;
 use Laravilt\Forms\Components\Toggle;
+use Laravilt\Forms\Components\ToggleButtons;
 use Laravilt\Forms\Services\FormValidator;
 use Laravilt\Schemas\Components\Grid;
 use Laravilt\Schemas\Components\Section;
@@ -61,6 +74,52 @@ class FormsDemoController extends Controller
             $validation['messages']
         );
 
+        return redirect()
+            ->back()
+            ->with('success', 'Form submitted successfully!')
+            ->with('data', $validated);
+    }
+
+    /**
+     * Blade demo page
+     */
+    public function blade()
+    {
+        $formSchema = $this->getFormSchema();
+
+        return view('laravilt-forms::demo.blade', [
+            'formSchema' => $formSchema,
+        ])->with('errors', session()->get('errors', new \Illuminate\Support\MessageBag));
+    }
+
+    /**
+     * Handle Blade form submission
+     */
+    public function bladeSubmit(Request $request)
+    {
+        // Get the form schema
+        $formSchema = $this->getFormSchema();
+
+        // Extract validation rules from the schema
+        $validation = FormValidator::getRules($formSchema);
+
+        // Validate the request using schema-generated rules
+        $validated = $request->validate(
+            $validation['rules'],
+            $validation['messages']
+        );
+
+        // Check if it's a Laravilt AJAX request
+        if ($request->header('X-Laravilt')) {
+            // Return the same blade view with success message for Laravilt
+            return view('laravilt-forms::demo.blade', [
+                'formSchema' => $formSchema,
+            ])->with('success', 'Form submitted successfully!')
+                ->with('data', $validated)
+                ->with('errors', new \Illuminate\Support\MessageBag);
+        }
+
+        // Regular form submission fallback
         return redirect()
             ->back()
             ->with('success', 'Form submitted successfully!')
@@ -120,13 +179,79 @@ class FormsDemoController extends Controller
                                                     ->columnSpan(2),
 
                                                 TextInput::make('phone')
+                                                    ->tel()
                                                     ->label('Phone Number')
-                                                    ->placeholder('+1 (555) 000-0000')
-                                                    ->prefix('+1'),
+                                                    ->placeholder('+1 (555) 000-0000'),
 
                                                 DatePicker::make('birthdate')
                                                     ->label('Date of Birth')
                                                     ->required(),
+
+                                                DateRangePicker::make('vacation_dates')
+                                                    ->label('Vacation Dates')
+                                                    ->helperText('Select your vacation date range')
+                                                    ->numberOfMonths(2)
+                                                    ->columnSpan(2),
+
+                                                DateTimePicker::make('appointment')
+                                                    ->label('Appointment Date & Time')
+                                                    ->helperText('Schedule your appointment')
+                                                    ->required(),
+
+                                                TimePicker::make('preferred_time')
+                                                    ->label('Preferred Contact Time')
+                                                    ->helperText('Best time to contact you'),
+                                            ]),
+                                    ]),
+
+                                Section::make('date_time_section')
+                                    ->heading('Date & Time Pickers Testing')
+                                    ->description('Test all date and time picker variations')
+                                    ->icon('calendar')
+                                    ->schema([
+                                        Grid::make('date_time_grid')
+                                            ->columns(2)
+                                            ->schema([
+                                                DatePicker::make('test_date_empty')
+                                                    ->label('Date Picker (Empty)')
+                                                    ->helperText('Test with no initial value'),
+
+                                                DatePicker::make('test_date_prefilled')
+                                                    ->label('Date Picker (Prefilled)')
+                                                    ->helperText('Test with initial value')
+                                                    ->default('2024-06-15'),
+
+                                                DateTimePicker::make('test_datetime_empty')
+                                                    ->label('DateTime Picker (Empty)')
+                                                    ->helperText('Test with no initial value'),
+
+                                                DateTimePicker::make('test_datetime_prefilled')
+                                                    ->label('DateTime Picker (Prefilled)')
+                                                    ->helperText('Test with initial value')
+                                                    ->default('2024-06-15 14:30'),
+
+                                                DateRangePicker::make('test_range_empty')
+                                                    ->label('Date Range Picker (Empty)')
+                                                    ->helperText('Test with no initial value')
+                                                    ->columnSpan(2),
+
+                                                DateRangePicker::make('test_range_prefilled')
+                                                    ->label('Date Range Picker (Prefilled)')
+                                                    ->helperText('Test with initial value')
+                                                    ->default([
+                                                        'start' => '2024-06-01',
+                                                        'end' => '2024-06-15',
+                                                    ])
+                                                    ->columnSpan(2),
+
+                                                TimePicker::make('test_time_empty')
+                                                    ->label('Time Picker (Empty)')
+                                                    ->helperText('Test with no initial value'),
+
+                                                TimePicker::make('test_time_prefilled')
+                                                    ->label('Time Picker (Prefilled)')
+                                                    ->helperText('Test with initial value')
+                                                    ->default('14:30'),
                                             ]),
                                     ]),
 
@@ -355,6 +480,13 @@ class FormsDemoController extends Controller
                                                         '#6366f1',
                                                     ]),
 
+                                                IconPicker::make('favorite_icon')
+                                                    ->label('Favorite Icon')
+                                                    ->helperText('Choose your favorite icon')
+                                                    ->searchable()
+                                                    ->showIconName()
+                                                    ->gridColumns(6),
+
                                                 Radio::make('theme_mode')
                                                     ->label('Theme Mode')
                                                     ->options([
@@ -379,6 +511,111 @@ class FormsDemoController extends Controller
                                                         'es' => 'Spanish',
                                                         'fr' => 'French',
                                                     ]),
+                                            ]),
+                                    ]),
+
+                                Section::make('numbers_section')
+                                    ->heading('Numbers & Measurements')
+                                    ->description('Numeric input fields with different formats')
+//                                    ->collapsible()
+//                                    ->collapsed()
+                                    ->schema([
+                                        Grid::make('numbers_grid')
+                                            ->columns(2)
+                                            ->schema([
+                                                NumberField::make('quantity')
+                                                    ->label('Quantity')
+                                                    ->helperText('Select a quantity')
+                                                    ->min(0)
+                                                    ->max(100)
+                                                    ->step(1),
+
+                                                NumberField::make('price')
+                                                    ->label('Price')
+                                                    ->currency('USD')
+                                                    ->helperText('Enter the price in USD')
+                                                    ->min(0)
+                                                    ->step(0.01),
+
+                                                NumberField::make('discount')
+                                                    ->label('Discount')
+                                                    ->percentage()
+                                                    ->helperText('Enter discount percentage')
+                                                    ->min(0)
+                                                    ->max(1),
+
+                                                NumberField::make('weight')
+                                                    ->label('Weight')
+                                                    ->suffix('kg')
+                                                    ->helperText('Enter weight in kilograms')
+                                                    ->min(0)
+                                                    ->step(0.1),
+
+                                                NumberField::make('temperature')
+                                                    ->label('Temperature')
+                                                    ->suffix('°C')
+                                                    ->helperText('Enter temperature in Celsius')
+                                                    ->step(0.5),
+
+                                                NumberField::make('score')
+                                                    ->label('Score')
+                                                    ->prefix('⭐')
+                                                    ->helperText('Rate from 0 to 10')
+                                                    ->min(0)
+                                                    ->max(10)
+                                                    ->step(0.5),
+                                            ]),
+                                    ]),
+
+                                Section::make('inputs_section')
+                                    ->heading('Special Inputs')
+                                    ->description('Pin input and rating fields')
+//                                    ->collapsible()
+//                                    ->collapsed()
+                                    ->schema([
+                                        Grid::make('special_inputs_grid')
+                                            ->columns(2)
+                                            ->schema([
+                                                PinInput::make('verification_code')
+                                                    ->label('Verification Code')
+                                                    ->helperText('Enter 6-digit code')
+                                                    ->length(6)
+                                                    ->otp(),
+
+                                                PinInput::make('password_pin')
+                                                    ->label('Password PIN')
+                                                    ->helperText('Enter 4-digit PIN')
+                                                    ->length(4)
+                                                    ->mask()
+                                                    ->type('numeric'),
+
+                                                RateInput::make('product_rating')
+                                                    ->label('Product Rating')
+                                                    ->helperText('Rate this product')
+                                                    ->maxRating(5)
+                                                    ->showValue(),
+
+                                                RateInput::make('service_rating')
+                                                    ->label('Service Rating')
+                                                    ->helperText('How was our service?')
+                                                    ->maxRating(5)
+                                                    ->allowHalf()
+                                                    ->showValue(),
+
+                                                RateInput::make('favorite_level')
+                                                    ->label('Favorite Level')
+                                                    ->helperText('How much do you like this?')
+                                                    ->maxRating(5)
+                                                    ->icon('heart')
+                                                    ->color('#ef4444'),
+
+                                                RateInput::make('skill_level')
+                                                    ->label('Skill Level')
+                                                    ->helperText('Rate your expertise')
+                                                    ->maxRating(10)
+                                                    ->icon('trophy')
+                                                    ->color('#f59e0b')
+                                                    ->showValue(),
                                             ]),
                                     ]),
 
@@ -456,6 +693,396 @@ class FormsDemoController extends Controller
                                             ->keyLabel('Property')
                                             ->valueLabel('Value')
                                             ->reorderable(),
+                                    ]),
+                            ]),
+
+                        // Tab 5: Builder & Repeater Testing
+                        Tab::make('builder_repeater_tab')
+                            ->label('Builder & Repeater')
+                            ->icon('layers')
+                            ->schema([
+                                Section::make('repeater_section')
+                                    ->heading('Repeater Examples')
+                                    ->description('Test various repeater configurations')
+                                    ->schema([
+                                        // Simple repeater with basic fields
+                                        Repeater::make('team_members')
+                                            ->label('Team Members')
+                                            ->helperText('Add team members with their details')
+                                            ->schema([
+                                                TextInput::make('name')
+                                                    ->label('Full Name')
+                                                    ->required()
+                                                    ->placeholder('John Doe'),
+
+                                                TextInput::make('email')
+                                                    ->label('Email')
+                                                    ->email()
+                                                    ->required()
+                                                    ->placeholder('john@example.com'),
+
+                                                TextInput::make('role')
+                                                    ->label('Role')
+                                                    ->required()
+                                                    ->placeholder('Developer'),
+
+                                                Select::make('department')
+                                                    ->label('Department')
+                                                    ->options([
+                                                        'engineering' => 'Engineering',
+                                                        'design' => 'Design',
+                                                        'marketing' => 'Marketing',
+                                                        'sales' => 'Sales',
+                                                    ])
+                                                    ->required(),
+                                            ])
+                                            ->minItems(1)
+                                            ->maxItems(10)
+                                            ->deletable()
+                                            ->reorderable()
+                                            ->collapsible()
+                                            ->cloneable()
+                                            ->addButtonLabel('Add Team Member'),
+
+                                        // Complex repeater with all field types
+                                        Repeater::make('projects')
+                                            ->label('Projects Portfolio')
+                                            ->helperText('Manage your project portfolio')
+                                            ->schema([
+                                                TextInput::make('project_name')
+                                                    ->label('Project Name')
+                                                    ->required(),
+
+                                                Textarea::make('description')
+                                                    ->label('Description')
+                                                    ->rows(3),
+
+                                                DatePicker::make('start_date')
+                                                    ->label('Start Date'),
+
+                                                DatePicker::make('end_date')
+                                                    ->label('End Date'),
+
+                                                Select::make('status')
+                                                    ->label('Status')
+                                                    ->options([
+                                                        'planning' => 'Planning',
+                                                        'active' => 'Active',
+                                                        'completed' => 'Completed',
+                                                        'on-hold' => 'On Hold',
+                                                    ]),
+
+                                                TagsInput::make('technologies')
+                                                    ->label('Technologies Used'),
+
+                                                ColorPicker::make('brand_color')
+                                                    ->label('Brand Color'),
+
+                                                Toggle::make('featured')
+                                                    ->label('Featured Project'),
+                                            ])
+                                            ->minItems(0)
+                                            ->maxItems(5)
+                                            ->deletable()
+                                            ->reorderable()
+                                            ->collapsible()
+                                            ->cloneable()
+                                            ->addButtonLabel('Add Project'),
+
+                                        // Nested repeater example
+                                        Repeater::make('education')
+                                            ->label('Education History')
+                                            ->helperText('Add your educational background')
+                                            ->schema([
+                                                TextInput::make('institution')
+                                                    ->label('Institution Name')
+                                                    ->required(),
+
+                                                TextInput::make('degree')
+                                                    ->label('Degree')
+                                                    ->required(),
+
+                                                TextInput::make('field')
+                                                    ->label('Field of Study'),
+
+                                                DatePicker::make('graduation_date')
+                                                    ->label('Graduation Date'),
+
+                                                Repeater::make('achievements')
+                                                    ->label('Achievements')
+                                                    ->schema([
+                                                        TextInput::make('achievement')
+                                                            ->label('Achievement')
+                                                            ->placeholder('Dean\'s List, Honor Roll, etc.'),
+                                                    ])
+                                                    ->minItems(0)
+                                                    ->maxItems(5)
+                                                    ->deletable()
+                                                    ->addButtonLabel('Add Achievement'),
+                                            ])
+                                            ->minItems(0)
+                                            ->deletable()
+                                            ->reorderable()
+                                            ->collapsible()
+                                            ->addButtonLabel('Add Education'),
+                                    ]),
+
+                                Section::make('builder_section')
+                                    ->heading('Builder Examples')
+                                    ->description('Test page builder functionality')
+                                    ->schema([
+                                        // Simple builder with different block types
+                                        Builder::make('page_content')
+                                            ->label('Page Content')
+                                            ->helperText('Build your page content using various blocks')
+                                            ->blocks([
+                                                Block::make('heading')
+                                                    ->label('Heading')
+                                                    ->icon('heading')
+                                                    ->schema([
+                                                        TextInput::make('content')
+                                                            ->label('Heading Text')
+                                                            ->required(),
+
+                                                        Select::make('level')
+                                                            ->label('Heading Level')
+                                                            ->options([
+                                                                'h1' => 'H1',
+                                                                'h2' => 'H2',
+                                                                'h3' => 'H3',
+                                                                'h4' => 'H4',
+                                                            ])
+                                                            ->required(),
+                                                    ]),
+
+                                                Block::make('paragraph')
+                                                    ->label('Paragraph')
+                                                    ->icon('text')
+                                                    ->schema([
+                                                        Textarea::make('content')
+                                                            ->label('Paragraph Text')
+                                                            ->rows(4)
+                                                            ->required(),
+                                                    ]),
+
+                                                Block::make('image')
+                                                    ->label('Image')
+                                                    ->icon('image')
+                                                    ->schema([
+                                                        FileUpload::make('image')
+                                                            ->label('Image File')
+                                                            ->image()
+                                                            ->required(),
+
+                                                        TextInput::make('alt')
+                                                            ->label('Alt Text'),
+
+                                                        TextInput::make('caption')
+                                                            ->label('Caption'),
+                                                    ]),
+
+                                                Block::make('quote')
+                                                    ->label('Quote')
+                                                    ->icon('quote')
+                                                    ->schema([
+                                                        Textarea::make('quote')
+                                                            ->label('Quote Text')
+                                                            ->rows(3)
+                                                            ->required(),
+
+                                                        TextInput::make('author')
+                                                            ->label('Author')
+                                                            ->required(),
+
+                                                        TextInput::make('source')
+                                                            ->label('Source'),
+                                                    ]),
+
+                                                Block::make('code')
+                                                    ->label('Code Block')
+                                                    ->icon('code')
+                                                    ->schema([
+                                                        CodeEditor::make('code')
+                                                            ->label('Code')
+                                                            ->required(),
+
+                                                        Select::make('language')
+                                                            ->label('Language')
+                                                            ->options([
+                                                                'php' => 'PHP',
+                                                                'javascript' => 'JavaScript',
+                                                                'python' => 'Python',
+                                                                'html' => 'HTML',
+                                                                'css' => 'CSS',
+                                                            ]),
+                                                    ]),
+
+                                                Block::make('list')
+                                                    ->label('List')
+                                                    ->icon('list')
+                                                    ->schema([
+                                                        Radio::make('type')
+                                                            ->label('List Type')
+                                                            ->options([
+                                                                'unordered' => 'Bullet Points',
+                                                                'ordered' => 'Numbered',
+                                                            ])
+                                                            ->required()
+                                                            ->inline(),
+
+                                                        Repeater::make('items')
+                                                            ->label('List Items')
+                                                            ->schema([
+                                                                TextInput::make('item')
+                                                                    ->label('Item')
+                                                                    ->required(),
+                                                            ])
+                                                            ->minItems(1)
+                                                            ->deletable()
+                                                            ->reorderable()
+                                                            ->addButtonLabel('Add Item'),
+                                                    ]),
+                                            ])
+                                            ->minItems(0)
+                                            ->maxItems(20)
+                                            ->deletable()
+                                            ->reorderable()
+                                            ->collapsible()
+                                            ->cloneable()
+                                            ->blockNumbers()
+                                            ->addActionLabel('Add Content Block'),
+
+                                        // Advanced builder example
+                                        Builder::make('landing_sections')
+                                            ->label('Landing Page Sections')
+                                            ->helperText('Build sections for your landing page')
+                                            ->blocks([
+                                                Block::make('hero')
+                                                    ->label('Hero Section')
+                                                    ->icon('layout-dashboard')
+                                                    ->schema([
+                                                        TextInput::make('headline')
+                                                            ->label('Headline')
+                                                            ->required(),
+
+                                                        TextInput::make('subheadline')
+                                                            ->label('Subheadline'),
+
+                                                        Textarea::make('description')
+                                                            ->label('Description')
+                                                            ->rows(3),
+
+                                                        FileUpload::make('background_image')
+                                                            ->label('Background Image')
+                                                            ->image(),
+
+                                                        TextInput::make('cta_text')
+                                                            ->label('CTA Button Text')
+                                                            ->placeholder('Get Started'),
+
+                                                        TextInput::make('cta_link')
+                                                            ->label('CTA Button Link')
+                                                            ->url(),
+                                                    ]),
+
+                                                Block::make('features')
+                                                    ->label('Features Section')
+                                                    ->icon('sparkles')
+                                                    ->schema([
+                                                        TextInput::make('section_title')
+                                                            ->label('Section Title')
+                                                            ->required(),
+
+                                                        Repeater::make('features')
+                                                            ->label('Features')
+                                                            ->schema([
+                                                                TextInput::make('icon')
+                                                                    ->label('Icon Name')
+                                                                    ->placeholder('check-circle'),
+
+                                                                TextInput::make('title')
+                                                                    ->label('Feature Title')
+                                                                    ->required(),
+
+                                                                Textarea::make('description')
+                                                                    ->label('Description')
+                                                                    ->rows(2),
+                                                            ])
+                                                            ->minItems(1)
+                                                            ->maxItems(6)
+                                                            ->deletable()
+                                                            ->reorderable()
+                                                            ->collapsible()
+                                                            ->addButtonLabel('Add Feature'),
+                                                    ]),
+
+                                                Block::make('testimonials')
+                                                    ->label('Testimonials Section')
+                                                    ->icon('message-square')
+                                                    ->schema([
+                                                        TextInput::make('section_title')
+                                                            ->label('Section Title')
+                                                            ->required(),
+
+                                                        Repeater::make('testimonials')
+                                                            ->label('Testimonials')
+                                                            ->schema([
+                                                                Textarea::make('quote')
+                                                                    ->label('Quote')
+                                                                    ->rows(3)
+                                                                    ->required(),
+
+                                                                TextInput::make('author')
+                                                                    ->label('Author Name')
+                                                                    ->required(),
+
+                                                                TextInput::make('position')
+                                                                    ->label('Position/Company'),
+
+                                                                FileUpload::make('avatar')
+                                                                    ->label('Avatar')
+                                                                    ->avatar(),
+                                                            ])
+                                                            ->minItems(1)
+                                                            ->maxItems(10)
+                                                            ->deletable()
+                                                            ->reorderable()
+                                                            ->collapsible()
+                                                            ->addButtonLabel('Add Testimonial'),
+                                                    ]),
+
+                                                Block::make('cta')
+                                                    ->label('Call to Action')
+                                                    ->icon('megaphone')
+                                                    ->schema([
+                                                        TextInput::make('title')
+                                                            ->label('Title')
+                                                            ->required(),
+
+                                                        Textarea::make('description')
+                                                            ->label('Description')
+                                                            ->rows(2),
+
+                                                        TextInput::make('button_text')
+                                                            ->label('Button Text')
+                                                            ->required(),
+
+                                                        TextInput::make('button_link')
+                                                            ->label('Button Link')
+                                                            ->url()
+                                                            ->required(),
+
+                                                        ColorPicker::make('background_color')
+                                                            ->label('Background Color'),
+                                                    ]),
+                                            ])
+                                            ->minItems(0)
+                                            ->deletable()
+                                            ->reorderable()
+                                            ->collapsible()
+                                            ->cloneable()
+                                            ->blockNumbers()
+                                            ->addActionLabel('Add Section'),
                                     ]),
                             ]),
                     ]),

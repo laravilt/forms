@@ -1,0 +1,1233 @@
+<script setup lang="ts">
+import { ref, computed, watch, onMounted, inject, Component as VueComponent } from 'vue'
+import {
+  ComboboxAnchor,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxPortal,
+  ComboboxRoot,
+  ComboboxTrigger,
+} from 'reka-ui'
+import { Check, ChevronDown, LoaderCircle, Plus, Edit } from 'lucide-vue-next'
+import * as LucideIcons from 'lucide-vue-next'
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import TextInput from './TextInput.vue'
+import Textarea from './Textarea.vue'
+import Toggle from './Toggle.vue'
+
+interface Option {
+  value: string
+  label: string
+  disabled?: boolean
+}
+
+interface OptionGroup {
+  label: string
+  options: Option[]
+}
+
+interface Props {
+  name?: string
+  value?: string | string[] | number | number[] | null
+  modelValue?: string | string[] | number | number[] | null
+  label?: string
+  resourceSlug?: string
+  fieldName?: string
+  placeholder?: string
+  multiple?: boolean
+  disabled?: boolean
+  required?: boolean
+  helperText?: string
+  loadingMessage?: string
+  noSearchResultsMessage?: string
+  searchPrompt?: string
+  searchingMessage?: string
+  searchDebounce?: number
+  searchableColumns?: string[]
+  allowHtml?: boolean
+  wrapOptionLabels?: boolean
+  selectablePlaceholder?: boolean
+  prefix?: string
+  suffix?: string
+  prefixIcon?: string
+  suffixIcon?: string
+  prefixIconColor?: string
+  suffixIconColor?: string
+  optionsLimit?: number
+  minItems?: number
+  maxItems?: number
+  hasCreateOptionForm?: boolean
+  hasEditOptionForm?: boolean
+  optionsAreGrouped?: boolean
+  options?: Option[] // Static options from backend
+  createOptionForm?: any[] // Form schema for creating options
+  editOptionForm?: any[] // Form schema for editing options
+  dependsOn?: string[] // Fields this select depends on for reactive loading
+  optionsUrl?: string // API endpoint for loading dynamic options
+  hasDynamicOptions?: boolean // Whether options are closure-based (evaluated server-side)
+  live?: boolean | string | number // Reactive mode
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  placeholder: 'Select an option',
+  multiple: false,
+  disabled: false,
+  required: false,
+  loadingMessage: 'Loading options...',
+  noSearchResultsMessage: 'No results found',
+  searchPrompt: 'Start typing to search...',
+  searchingMessage: 'Searching...',
+  searchDebounce: 1000,
+  searchableColumns: () => [],
+  allowHtml: false,
+  wrapOptionLabels: true,
+  selectablePlaceholder: true,
+  optionsLimit: 50,
+  hasCreateOptionForm: false,
+  hasEditOptionForm: false,
+  optionsAreGrouped: false,
+  options: () => [], // Default empty array for static options
+  createOptionForm: () => [], // Default empty array for create form
+  editOptionForm: () => [], // Default empty array for edit form
+  dependsOn: () => [], // Default empty array for dependent fields
+  live: false,
+})
+
+const emit = defineEmits<{
+  'update:modelValue': [value: string | string[] | null]
+  'update:value': [value: string | string[] | null]
+}>()
+
+// Modal state for create/edit
+const showCreateModal = ref(false)
+const showEditModal = ref(false)
+const editingOptionId = ref<string | null>(null)
+
+// Component mapping for dynamic form rendering
+const componentMap: Record<string, VueComponent> = {
+  'TextInput': TextInput,
+  'Textarea': Textarea,
+  'Toggle': Toggle,
+}
+
+// Helper to get Vue component from schema
+const getComponent = (componentName: string): VueComponent | null => {
+  return componentMap[componentName] || null
+}
+
+// Helper to get Lucide icon component by name
+const getIconComponent = (iconName?: string) => {
+  if (!iconName) return null
+  // Convert kebab-case or lowercase to PascalCase for Lucide icons
+  const pascalCase = iconName
+    .split(/[-_\s]/)
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join('')
+  return (LucideIcons as any)[pascalCase] || null
+}
+
+// Helper to get Tailwind color classes for icons
+const getIconColorClass = (color?: string) => {
+  if (!color) return 'text-muted-foreground'
+
+  // Map common color names to Tailwind classes
+  const colorMap: Record<string, string> = {
+    'primary': 'text-primary',
+    'secondary': 'text-secondary',
+    'success': 'text-green-600',
+    'danger': 'text-red-600',
+    'warning': 'text-yellow-600',
+    'info': 'text-blue-600',
+    'muted': 'text-muted-foreground',
+    'destructive': 'text-destructive',
+  }
+
+  return colorMap[color] || `text-${color}`
+}
+
+const open = ref(false)
+const searchTerm = ref('')
+const options = ref<Option[]>([])
+const selectedOptionsCache = ref<Map<string, string>>(new Map()) // Cache selected option labels
+const loading = ref(false)
+const hasMore = ref(false)
+const page = ref(1)
+const initialLoadComplete = ref(false)
+const scrollContainer = ref<HTMLElement | null>(null)
+
+// Internal state for selected values
+const internalSelectedValues = ref<string[]>([])
+
+// Watch for prop changes and update internal state
+watch(() => props.value ?? props.modelValue, (newValue) => {
+  if (newValue === null || newValue === undefined || newValue === '') {
+    internalSelectedValues.value = []
+  } else if (Array.isArray(newValue)) {
+    internalSelectedValues.value = newValue.map(v => String(v)).filter(v => v !== '')
+  } else {
+    internalSelectedValues.value = [String(newValue)]
+  }
+}, { immediate: true })
+
+// Selected values computed - reads from internal state, writes to both internal state and emits
+const selectedValues = computed<string[]>({
+  get: () => internalSelectedValues.value,
+  set: (value: string | string[]) => {
+    // Normalize to array
+    let values: string[]
+    if (Array.isArray(value)) {
+      values = value
+    } else if (value !== null && value !== undefined) {
+      values = [String(value)]
+    } else {
+      values = []
+    }
+
+    // Filter out empty strings and invalid values
+    const validValues = values.filter(v => v && String(v).trim() !== '')
+
+    // Update internal state
+    internalSelectedValues.value = validValues
+
+    // Emit to parent
+    if (props.multiple) {
+      emit('update:modelValue', validValues.length > 0 ? validValues : null)
+      emit('update:value', validValues.length > 0 ? validValues : null)
+    } else {
+      emit('update:modelValue', validValues.length > 0 ? validValues[0] : null)
+      emit('update:value', validValues.length > 0 ? validValues[0] : null)
+    }
+  }
+})
+
+// Get label for a value with HTML support
+const getLabelForValue = (val: string): string => {
+  // First try to find in current options
+  const found = options.value.find(opt => opt.value === val)
+  if (found) {
+    return found.label
+  }
+  // Fallback to cache
+  const cached = selectedOptionsCache.value.get(val)
+  if (cached) {
+    return cached
+  }
+  return `ID: ${val}`
+}
+
+// Display value for trigger (actual selected labels, empty if none selected)
+const displayValue = computed(() => {
+  if (selectedValues.value.length === 0) {
+    return ''
+  }
+
+  const labels = selectedValues.value
+    .map(val => getLabelForValue(val))
+    .filter(Boolean)
+
+  if (labels.length === 0) {
+    return ''
+  }
+
+  if (props.multiple) {
+    return labels.join(', ')
+  }
+
+  return labels[0]
+})
+
+// Display text for the input (shows label or placeholder)
+const displayText = computed(() => {
+  return displayValue.value || props.placeholder
+})
+
+// Current search query (separate from ComboboxRoot's internal state)
+const currentSearch = ref('')
+
+// Fetch options from API
+const fetchOptions = async (reset: boolean = false, searchQuery?: string) => {
+  if (loading.value) return
+
+  // Guard: Don't fetch if required props are missing
+  if (!props.resourceSlug || !props.fieldName) {
+    console.warn('[Select] Cannot fetch options: resourceSlug or fieldName is missing')
+    loading.value = false
+    return
+  }
+
+  // Use provided search query, otherwise use current search
+  const search = searchQuery !== undefined ? searchQuery : currentSearch.value
+
+  if (reset) {
+    page.value = 1
+    options.value = []
+  }
+
+  loading.value = true
+
+  try {
+    const params = new URLSearchParams({
+      page: page.value.toString(),
+    })
+
+    if (search.trim()) {
+      params.append('search', search.trim())
+    }
+
+    const url = `/dashboard/${props.resourceSlug}/select-options/${props.fieldName}?${params}`
+
+    const response = await fetch(url)
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch options')
+    }
+
+    const data = await response.json()
+
+    // Cache all option labels for selected values
+    data.options.forEach((option: Option) => {
+      selectedOptionsCache.value.set(option.value, option.label)
+    })
+
+    if (reset) {
+      options.value = data.options
+    } else {
+      options.value = [...options.value, ...data.options]
+    }
+
+    hasMore.value = data.has_more
+  } catch (error) {
+    console.error('[SearchableSelect] Error fetching options:', error)
+  } finally {
+    loading.value = false
+  }
+}
+
+// Load more options
+const loadMore = () => {
+  if (hasMore.value && !loading.value) {
+    page.value++
+    fetchOptions()
+  }
+}
+
+// Handle infinite scroll
+const handleScroll = (event: Event) => {
+  const target = event.target as HTMLElement
+  const scrollTop = target.scrollTop
+  const scrollHeight = target.scrollHeight
+  const clientHeight = target.clientHeight
+
+  // Load more when scrolled to bottom (with 50px threshold)
+  const isNearBottom = scrollTop + clientHeight >= scrollHeight - 50
+
+  if (isNearBottom && hasMore.value && !loading.value) {
+    loadMore()
+  }
+}
+
+// Watch search term changes directly
+let searchDebounceTimeout: ReturnType<typeof setTimeout> | undefined
+watch(searchTerm, (newValue) => {
+  // Update current search
+  currentSearch.value = newValue
+
+  // Only search if dropdown is open
+  if (!open.value) return
+
+  clearTimeout(searchDebounceTimeout)
+  searchDebounceTimeout = setTimeout(() => {
+    fetchOptions(true, newValue)
+  }, props.searchDebounce)
+})
+
+// Watch open state to fetch initial data (preload)
+watch(open, (isOpen) => {
+  if (isOpen) {
+    // Clear search term when opening for fresh search
+    searchTerm.value = ''
+    currentSearch.value = ''
+    page.value = 1
+    hasMore.value = false
+
+    // Only fetch if we don't have static options AND not using dependent options
+    // Dependent selects manage their own options via fetchDependentOptions
+    if (!hasStaticOptions.value && !props.optionsUrl && !props.hasDynamicOptions) {
+      // Fetch fresh data when opening
+      fetchOptions(true, '')
+    }
+  } else {
+    // Keep options when closing - we need them to display the selected value!
+  }
+})
+
+// Inject form data for dependent field watching
+const formData = inject<Record<string, any>>('formData', null)
+
+// Computed property to check if select should be disabled due to missing dependencies
+const isDisabledByDependency = computed(() => {
+  if (!props.dependsOn || props.dependsOn.length === 0 || !formData) {
+    return false
+  }
+
+  // Check if all dependencies have values
+  return props.dependsOn.some((fieldName) => {
+    const value = formData[fieldName]
+    return value === null || value === undefined || value === ''
+  })
+})
+
+// Combined disabled state
+const disabled = computed(() => {
+  return props.disabled || isDisabledByDependency.value
+})
+
+// Fetch options based on dependent field values
+const fetchDependentOptions = async () => {
+  if (!props.dependsOn || props.dependsOn.length === 0) {
+    return
+  }
+
+  if (!formData) {
+    console.warn('Form data not provided via inject. Dependent selects will not work.')
+    return
+  }
+
+  // Check if all dependencies have values
+  let hasRequiredValues = true
+  props.dependsOn.forEach((fieldName) => {
+    const value = formData[fieldName]
+    if (value === null || value === undefined || value === '') {
+      hasRequiredValues = false
+    }
+  })
+
+  // If no dependent values, clear options and don't fetch
+  if (!hasRequiredValues) {
+    options.value = []
+    return
+  }
+
+  loading.value = true
+
+  try {
+    let url: string
+    let requestOptions: RequestInit
+
+    // Choose fetch method based on optionsUrl vs hasDynamicOptions
+    if (props.optionsUrl) {
+      // Direct API endpoint (e.g., /api/locations/states)
+      const params = new URLSearchParams()
+      props.dependsOn.forEach((fieldName) => {
+        const value = formData[fieldName]
+        if (value !== null && value !== undefined && value !== '') {
+          params.append(fieldName, String(value))
+        }
+      })
+
+      url = `${props.optionsUrl}?${params.toString()}`
+      requestOptions = {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
+        },
+        credentials: 'same-origin',
+      }
+    } else if (props.hasDynamicOptions) {
+      // Closure-based options - use evaluation API
+      url = '/api/form/evaluate-field'
+
+      // Get CSRF token from meta tag
+      const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+
+      requestOptions = {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
+          'X-CSRF-TOKEN': csrfToken || '',
+        },
+        credentials: 'same-origin',
+        body: JSON.stringify({
+          resource: props.resourceSlug,
+          field_name: props.fieldName,
+          form_state: formData,
+          property: 'options',
+        }),
+      }
+    } else {
+      // No way to fetch options
+      return
+    }
+
+    const response = await fetch(url, requestOptions)
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    const data = await response.json()
+
+    // Handle different response formats
+    let optionsArray: any[]
+
+    if (props.hasDynamicOptions && data.options) {
+      // Evaluation API returns {options: [...]}
+      optionsArray = data.options
+    } else if (Array.isArray(data)) {
+      // Direct API returns [...]
+      optionsArray = data
+    } else {
+      options.value = []
+      return
+    }
+
+    // Transform to options format
+    if (Array.isArray(optionsArray)) {
+      options.value = optionsArray.map((item: any) => ({
+        value: String(item.id || item.value),
+        label: item.name || item.label || item.title,
+        disabled: item.disabled || false,
+      }))
+    }
+  } catch (error) {
+    console.error('[Select] Error fetching dependent options:', error)
+    options.value = []
+  } finally {
+    loading.value = false
+  }
+}
+
+// Watch dependent fields for cascading select behavior
+if (props.dependsOn && props.dependsOn.length > 0 && (props.optionsUrl || props.hasDynamicOptions)) {
+  // Watch each dependent field
+  props.dependsOn.forEach((fieldName) => {
+    // Track if this is the first run (mount)
+    let isFirstRun = true
+
+    watch(
+      () => formData?.[fieldName],
+      async (newValue, oldValue) => {
+        // On first run (mount), just fetch options without clearing
+        if (isFirstRun) {
+          isFirstRun = false
+
+          // Fetch options if dependency has a value
+          if (newValue !== null && newValue !== undefined && newValue !== '') {
+            await fetchDependentOptions()
+          }
+          return
+        }
+
+        // When a dependent field changes (not first run), clear and fetch new options
+        if (newValue !== oldValue) {
+          // Clear current selection when dependency changes
+          selectedValues.value = []
+
+          // Emit the cleared value to update the form
+          emit('update:modelValue', props.multiple ? [] : null)
+
+          // Clear current options
+          options.value = []
+
+          // Fetch new options if the dependent field has a value
+          if (newValue !== null && newValue !== undefined && newValue !== '') {
+            await fetchDependentOptions()
+          }
+        }
+      },
+      { immediate: true } // Fetch on mount if dependency already has value
+    )
+  })
+}
+
+// Fetch selected options by IDs (for edit mode)
+const fetchSelectedOptions = async (ids: string[]) => {
+  if (ids.length === 0) return
+
+  loading.value = true
+  try {
+    const params = new URLSearchParams()
+    ids.forEach(id => params.append('ids[]', id))
+
+    const url = `/dashboard/${props.resourceSlug}/select-options/${props.fieldName}?${params}`
+
+    const response = await fetch(url)
+    if (!response.ok) {
+      throw new Error('Failed to fetch selected options')
+    }
+
+    const data = await response.json()
+
+    // Cache all option labels
+    data.options.forEach((option: Option) => {
+      selectedOptionsCache.value.set(option.value, option.label)
+    })
+
+    // Add these options to our options array
+    options.value = data.options
+  } catch (error) {
+    console.error('[SearchableSelect] Error fetching selected options:', error)
+  } finally {
+    loading.value = false
+  }
+}
+
+// Check if we have static options (non-searchable/non-relationship)
+const hasStaticOptions = computed(() => {
+  return props.options && props.options.length > 0
+})
+
+// Preload initial options on mount for better UX
+onMounted(async () => {
+  if (hasStaticOptions.value) {
+    // Use static options provided from backend
+    options.value = props.options || []
+
+    // Cache all static option labels
+    options.value.forEach((option) => {
+      selectedOptionsCache.value.set(option.value, option.label)
+    })
+
+    initialLoadComplete.value = true
+  } else {
+    // For closure-based or dependent selects, trigger fetch if dependencies are met
+    if (props.hasDynamicOptions || (props.dependsOn && props.dependsOn.length > 0)) {
+      // Don't fetch initial options - they'll be loaded when dependencies change
+      // Just mark as complete so the select can be used
+      initialLoadComplete.value = true
+    } else if (selectedValues.value.length > 0) {
+      // If there's a pre-selected value (edit mode) and it's a relationship select,
+      // fetch the specific selected options by ID to display labels
+      await fetchSelectedOptions(selectedValues.value)
+      initialLoadComplete.value = true
+    } else {
+      initialLoadComplete.value = true
+    }
+  }
+})
+
+// Handle search term change from ComboboxRoot
+let searchTimeout: ReturnType<typeof setTimeout> | undefined
+const handleSearchChange = (value: string) => {
+  // Update both refs
+  searchTerm.value = value
+  currentSearch.value = value
+
+  // Only search if dropdown is open
+  if (!open.value) return
+
+  clearTimeout(searchTimeout)
+  searchTimeout = setTimeout(() => {
+    // Backend search - reset to page 1 with new search query (clears options and fetches fresh)
+    fetchOptions(true, value)
+  }, props.searchDebounce)
+}
+
+// Remove a value from selection (for badges)
+const removeValue = (valueToRemove: string) => {
+  const newValues = selectedValues.value.filter(v => v !== valueToRemove)
+  selectedValues.value = newValues
+}
+
+// Validation errors
+const validationError = ref<string | null>(null)
+
+// Check min/max items validation
+const checkValidation = () => {
+  if (!props.multiple) {
+    validationError.value = null
+    return
+  }
+
+  const count = selectedValues.value.length
+
+  if (props.minItems && count < props.minItems) {
+    validationError.value = `Please select at least ${props.minItems} item${props.minItems > 1 ? 's' : ''}`
+    return
+  }
+
+  if (props.maxItems && count > props.maxItems) {
+    validationError.value = `You can only select up to ${props.maxItems} item${props.maxItems > 1 ? 's' : ''}`
+    return
+  }
+
+  validationError.value = null
+}
+
+// Watch selected values for validation
+watch(selectedValues, () => {
+  checkValidation()
+})
+
+// Handle selection change from ComboboxRoot
+const handleValueChange = (value: string | string[]) => {
+  // Convert to array and filter valid values
+  let newValues: string[]
+  if (Array.isArray(value)) {
+    newValues = value.filter(v => v && String(v).trim() !== '')
+  } else if (value !== null && value !== undefined && String(value).trim() !== '') {
+    newValues = [String(value)]
+  } else {
+    newValues = []
+  }
+
+  // Check if we're exceeding maxItems
+  if (props.multiple && props.maxItems && newValues.length > props.maxItems) {
+    newValues = newValues.slice(0, props.maxItems)
+  }
+
+  // Update selectedValues (which will trigger the emit)
+  selectedValues.value = newValues
+
+  if (!props.multiple) {
+    open.value = false
+    // Clear search term when closing after selection
+    searchTerm.value = ''
+  }
+  // For multiple select, keep dropdown open and don't clear search
+}
+
+// Create/Edit option functionality
+const createFormData = ref<Record<string, any>>({})
+const editFormData = ref<Record<string, any>>({})
+const savingOption = ref(false)
+
+// Open create modal
+const openCreateModal = () => {
+  createFormData.value = {}
+  showCreateModal.value = true
+}
+
+// Open edit modal
+const openEditModal = async (optionId: string) => {
+  editingOptionId.value = optionId
+  editFormData.value = {}
+  showEditModal.value = true
+
+  // Fetch existing option data
+  try {
+    const response = await fetch(`/dashboard/${props.resourceSlug}/select-options/${props.fieldName}/${optionId}`, {
+      headers: {
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+      },
+    })
+
+    if (!response.ok) {
+      throw new Error('Failed to fetch option data')
+    }
+
+    const data = await response.json()
+    editFormData.value = data
+  } catch (error) {
+    console.error('[Select] Error fetching option data:', error)
+    // Continue with empty form if fetch fails
+  }
+}
+
+// Save new option
+const saveNewOption = async () => {
+  if (savingOption.value) return
+
+  savingOption.value = true
+  try {
+    const response = await fetch(`/dashboard/${props.resourceSlug}/select-options/${props.fieldName}/create`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+      },
+      body: JSON.stringify(createFormData.value),
+    })
+
+    if (!response.ok) {
+      throw new Error('Failed to create option')
+    }
+
+    const data = await response.json()
+
+    // Add new option to list and cache
+    const newOption: Option = {
+      value: String(data.id),
+      label: data.label,
+    }
+    options.value.unshift(newOption)
+    selectedOptionsCache.value.set(newOption.value, newOption.label)
+
+    // Auto-select the new option
+    if (props.multiple) {
+      selectedValues.value = [...selectedValues.value, newOption.value]
+    } else {
+      selectedValues.value = [newOption.value]
+    }
+
+    showCreateModal.value = false
+    createFormData.value = {}
+  } catch (error) {
+    console.error('[Select] Error creating option:', error)
+    alert('Failed to create option. Please try again.')
+  } finally {
+    savingOption.value = false
+  }
+}
+
+// Update existing option
+const updateOption = async () => {
+  if (savingOption.value || !editingOptionId.value) return
+
+  savingOption.value = true
+  try {
+    const response = await fetch(`/dashboard/${props.resourceSlug}/select-options/${props.fieldName}/${editingOptionId.value}/edit`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+      },
+      body: JSON.stringify(editFormData.value),
+    })
+
+    if (!response.ok) {
+      throw new Error('Failed to update option')
+    }
+
+    const data = await response.json()
+
+    // Update option in list and cache
+    const optionIndex = options.value.findIndex(opt => opt.value === editingOptionId.value)
+    if (optionIndex !== -1) {
+      options.value[optionIndex].label = data.label
+    }
+    selectedOptionsCache.value.set(String(data.id), data.label)
+
+    showEditModal.value = false
+    editFormData.value = {}
+    editingOptionId.value = null
+  } catch (error) {
+    console.error('[Select] Error updating option:', error)
+    alert('Failed to update option. Please try again.')
+  } finally {
+    savingOption.value = false
+  }
+}
+</script>
+
+<template>
+  <div class="w-full space-y-2">
+  <!-- Label -->
+  <label
+    v-if="label"
+    :for="name"
+    class="text-sm font-medium block text-foreground"
+  >
+    {{ label }}
+    <span v-if="required" class="text-destructive ml-0.5">*</span>
+  </label>
+
+  <!-- Hidden input for form submission -->
+  <input
+    v-if="name"
+    type="hidden"
+    :name="name"
+    :value="multiple ? (selectedValues.length > 0 ? selectedValues.join(',') : '') : (selectedValues.length > 0 ? selectedValues[0] : '')"
+  />
+
+  <div class="flex items-center gap-2">
+  <ComboboxRoot
+    v-model="selectedValues"
+    v-model:open="open"
+    v-model:search-term="searchTerm"
+    :multiple="multiple"
+    :disabled="disabled"
+    :filter-function="() => true"
+    class="relative w-full flex-1"
+    @update:model-value="handleValueChange"
+    @update:search-term="handleSearchChange"
+  >
+    <ComboboxAnchor
+      class="group w-full rounded-md border border-input bg-background text-sm shadow-sm ring-offset-background transition-all hover:border-ring focus-within:outline-none focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 data-[state=open]:border-ring data-[state=open]:ring-2 data-[state=open]:ring-ring cursor-pointer"
+      :class="cn(
+        disabled && 'cursor-not-allowed opacity-50',
+        props.multiple ? 'flex flex-col items-start' : 'inline-flex items-center gap-2',
+        props.multiple && selectedValues.length > 0 ? 'px-2 py-2' : 'px-3 py-2'
+      )"
+      @click="() => { if (!disabled && !open) open = true }"
+    >
+      <!-- Multiple select: Show badges + input -->
+      <div v-if="props.multiple" class="w-full flex flex-col gap-2">
+        <!-- Selected badges -->
+        <div v-if="selectedValues.length > 0" class="flex flex-wrap gap-1">
+          <span
+            v-for="value in selectedValues"
+            :key="value"
+            class="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-primary/10 text-primary text-xs font-medium"
+          >
+            <span v-if="props.allowHtml" v-html="getLabelForValue(value)" />
+            <span v-else>{{ getLabelForValue(value) }}</span>
+
+            <!-- Edit button for multi-select badges -->
+            <button
+              v-if="props.hasEditOptionForm"
+              type="button"
+              class="hover:bg-primary/20 rounded-sm p-0.5 transition-colors"
+              @click.stop="openEditModal(value)"
+            >
+              <Edit class="h-3 w-3" />
+            </button>
+
+            <!-- Remove button -->
+            <button
+              type="button"
+              class="hover:bg-primary/20 rounded-sm p-0.5 transition-colors"
+              @click.stop="removeValue(value)"
+            >
+              <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </span>
+        </div>
+        <!-- Search input (always visible for multiple) -->
+        <div class="flex items-center gap-2 w-full">
+          <!-- Prefix icon or text -->
+          <span v-if="getIconComponent(props.prefixIcon) || props.prefix" class="shrink-0 flex items-center gap-1">
+            <component
+              v-if="getIconComponent(props.prefixIcon)"
+              :is="getIconComponent(props.prefixIcon)"
+              class="h-4 w-4"
+              :class="getIconColorClass(props.prefixIconColor)"
+            />
+            <span v-if="props.prefix" class="text-sm text-muted-foreground">{{ props.prefix }}</span>
+          </span>
+          <ComboboxInput
+            v-model="searchTerm"
+            :placeholder="selectedValues.length > 0 ? 'Search...' : props.placeholder"
+            class="flex-1 min-w-0 bg-transparent outline-none placeholder:text-muted-foreground text-sm"
+            :disabled="disabled"
+          />
+          <!-- Suffix icon or text -->
+          <span v-if="getIconComponent(props.suffixIcon) || props.suffix" class="shrink-0 flex items-center gap-1">
+            <span v-if="props.suffix" class="text-sm text-muted-foreground">{{ props.suffix }}</span>
+            <component
+              v-if="getIconComponent(props.suffixIcon)"
+              :is="getIconComponent(props.suffixIcon)"
+              class="h-4 w-4"
+              :class="getIconColorClass(props.suffixIconColor)"
+            />
+          </span>
+          <ComboboxTrigger class="shrink-0" as-child>
+            <button type="button" :disabled="disabled" @click.stop="open = !open">
+              <ChevronDown
+                class="h-4 w-4 opacity-50 transition-transform duration-200 group-data-[state=open]:rotate-180"
+              />
+            </button>
+          </ComboboxTrigger>
+        </div>
+      </div>
+
+      <!-- Single select: Show value or input -->
+      <template v-else>
+        <!-- Prefix icon or text -->
+        <span v-if="getIconComponent(props.prefixIcon) || props.prefix" class="shrink-0 flex items-center gap-1">
+          <component
+            v-if="getIconComponent(props.prefixIcon)"
+            :is="getIconComponent(props.prefixIcon)"
+            class="h-4 w-4"
+            :class="getIconColorClass(props.prefixIconColor)"
+          />
+          <span v-if="props.prefix" class="text-sm text-muted-foreground">{{ props.prefix }}</span>
+        </span>
+        <span
+          v-if="!open && displayValue && props.allowHtml"
+          class="flex-1 min-w-0 truncate text-sm"
+          v-html="displayValue"
+        />
+        <span
+          v-else-if="!open && displayValue"
+          class="flex-1 min-w-0 truncate text-sm"
+        >
+          {{ displayValue }}
+        </span>
+        <span
+          v-else-if="!open"
+          class="flex-1 min-w-0 text-sm text-muted-foreground"
+        >
+          {{ props.placeholder }}
+        </span>
+        <ComboboxInput
+          v-else
+          v-model="searchTerm"
+          :placeholder="props.placeholder"
+          class="flex-1 min-w-0 bg-transparent outline-none placeholder:text-muted-foreground text-sm"
+          :disabled="disabled"
+          auto-focus
+        />
+        <!-- Suffix icon or text -->
+        <span v-if="getIconComponent(props.suffixIcon) || props.suffix" class="shrink-0 flex items-center gap-1">
+          <span v-if="props.suffix" class="text-sm text-muted-foreground">{{ props.suffix }}</span>
+          <component
+            v-if="getIconComponent(props.suffixIcon)"
+            :is="getIconComponent(props.suffixIcon)"
+            class="h-4 w-4"
+            :class="getIconColorClass(props.suffixIconColor)"
+          />
+        </span>
+        <ComboboxTrigger class="shrink-0" as-child>
+          <button type="button" :disabled="disabled" @click.stop="open = !open">
+            <ChevronDown
+              class="h-4 w-4 opacity-50 transition-transform duration-200 group-data-[state=open]:rotate-180"
+            />
+          </button>
+        </ComboboxTrigger>
+      </template>
+    </ComboboxAnchor>
+
+    <ComboboxPortal>
+      <ComboboxContent
+        class="w-full min-w-[var(--reka-combobox-trigger-width)] rounded-md border border-border bg-popover text-popover-foreground shadow-lg outline-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-top-2 data-[state=open]:slide-in-from-top-2 z-50"
+        position="popper"
+        side="bottom"
+        :side-offset="4"
+        align="start"
+        :collision-padding="8"
+        :avoid-collisions="true"
+      >
+        <!-- Initial loading state -->
+        <div
+          v-if="loading && options.length === 0"
+          class="flex flex-col items-center justify-center gap-2 py-8"
+        >
+          <LoaderCircle class="h-5 w-5 animate-spin text-muted-foreground" />
+          <span class="text-sm text-muted-foreground">{{ props.loadingMessage }}</span>
+        </div>
+
+        <!-- Search results / Options list -->
+        <div
+          v-else-if="options.length > 0"
+          ref="scrollContainer"
+          class="max-h-[300px] overflow-y-auto overscroll-contain"
+          @scroll="handleScroll"
+        >
+          <div class="p-1">
+            <ComboboxItem
+              v-for="option in options"
+              :key="option.value"
+              :value="option.value"
+              :disabled="option.disabled"
+              class="relative flex cursor-pointer select-none items-center gap-2 rounded-sm px-2 py-2 text-sm outline-none transition-colors data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
+            >
+              <Check
+                :class="cn(
+                  'h-4 w-4 shrink-0 transition-opacity',
+                  selectedValues.includes(option.value) ? 'opacity-100' : 'opacity-0'
+                )"
+              />
+              <span
+                v-if="props.allowHtml"
+                class="flex-1"
+                :class="props.wrapOptionLabels ? '' : 'truncate'"
+                v-html="option.label"
+              />
+              <span
+                v-else
+                class="flex-1"
+                :class="props.wrapOptionLabels ? '' : 'truncate'"
+              >
+                {{ option.label }}
+              </span>
+            </ComboboxItem>
+
+            <!-- Loading more indicator (infinite scroll) -->
+            <div
+              v-if="loading || hasMore"
+              class="flex items-center justify-center gap-2 px-2 py-3 text-sm text-muted-foreground"
+            >
+              <LoaderCircle v-if="loading" class="h-4 w-4 animate-spin" />
+              <span v-if="loading">{{ searchTerm ? props.searchingMessage : props.loadingMessage }}</span>
+              <span v-else-if="hasMore" class="text-xs">Scroll for more</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Empty state -->
+        <ComboboxEmpty
+          v-else
+          class="flex flex-col items-center justify-center gap-3 py-8 px-4"
+        >
+          <div class="text-muted-foreground text-sm text-center">
+            <p v-if="searchTerm" class="font-medium">{{ props.noSearchResultsMessage }}</p>
+            <p v-else class="font-medium">{{ props.searchPrompt }}</p>
+            <p v-if="searchTerm" class="text-xs mt-1">Try adjusting your search</p>
+          </div>
+
+          <!-- Create new option button -->
+          <Button
+            v-if="props.hasCreateOptionForm"
+            type="button"
+            variant="outline"
+            size="sm"
+            class="gap-2"
+            @click.stop="openCreateModal"
+          >
+            <Plus class="h-4 w-4" />
+            Create New
+          </Button>
+        </ComboboxEmpty>
+      </ComboboxContent>
+    </ComboboxPortal>
+  </ComboboxRoot>
+
+  <!-- Create button (suffix) -->
+  <Button
+    v-if="props.hasCreateOptionForm"
+    type="button"
+    variant="outline"
+    size="icon"
+    class="shrink-0"
+    @click="openCreateModal"
+  >
+    <Plus class="h-4 w-4" />
+  </Button>
+
+  <!-- Edit button (suffix) - only for single select with a selected value -->
+  <Button
+    v-if="props.hasEditOptionForm && !props.multiple && selectedValues.length > 0"
+    type="button"
+    variant="outline"
+    size="icon"
+    class="shrink-0"
+    @click="openEditModal(selectedValues[0])"
+  >
+    <Edit class="h-3.5 w-3.5" />
+  </Button>
+  </div>
+
+  <!-- Validation error message -->
+  <p v-if="validationError" class="mt-1 text-sm text-destructive">
+    {{ validationError }}
+  </p>
+
+  <!-- Create Option Modal -->
+  <Dialog v-model:open="showCreateModal">
+    <DialogContent class="sm:max-w-[525px]">
+      <DialogHeader>
+        <DialogTitle>Create New Option</DialogTitle>
+        <DialogDescription>
+          Create a new option for this field. It will be automatically selected after creation.
+        </DialogDescription>
+      </DialogHeader>
+      <div class="grid gap-4 py-4">
+        <div
+          v-for="(field, index) in props.createOptionForm"
+          :key="index"
+          class="space-y-2"
+        >
+          <label v-if="field.label" :for="`create-${field.name}`" class="text-sm font-medium block">
+            {{ field.label }}
+            <span v-if="field.required" class="text-destructive ml-0.5">*</span>
+          </label>
+          <component
+            :is="getComponent(field.component)"
+            v-if="getComponent(field.component)"
+            :id="`create-${field.name}`"
+            v-model="createFormData[field.name]"
+            v-bind="field"
+          />
+          <p v-if="field.helperText" class="text-xs text-muted-foreground">
+            {{ field.helperText }}
+          </p>
+        </div>
+      </div>
+      <DialogFooter>
+        <Button
+          type="button"
+          variant="outline"
+          @click="showCreateModal = false"
+        >
+          Cancel
+        </Button>
+        <Button
+          type="button"
+          :disabled="savingOption"
+          @click="saveNewOption"
+        >
+          <LoaderCircle v-if="savingOption" class="h-4 w-4 animate-spin mr-2" />
+          {{ savingOption ? 'Creating...' : 'Create' }}
+        </Button>
+      </DialogFooter>
+    </DialogContent>
+  </Dialog>
+
+  <!-- Edit Option Modal -->
+  <Dialog v-model:open="showEditModal">
+    <DialogContent class="sm:max-w-[525px]">
+      <DialogHeader>
+        <DialogTitle>Edit Option</DialogTitle>
+        <DialogDescription>
+          Update the option details. Changes will be reflected immediately.
+        </DialogDescription>
+      </DialogHeader>
+      <div class="grid gap-4 py-4">
+        <div
+          v-for="(field, index) in props.editOptionForm"
+          :key="index"
+          class="space-y-2"
+        >
+          <label v-if="field.label" :for="`edit-${field.name}`" class="text-sm font-medium block">
+            {{ field.label }}
+            <span v-if="field.required" class="text-destructive ml-0.5">*</span>
+          </label>
+          <component
+            :is="getComponent(field.component)"
+            v-if="getComponent(field.component)"
+            :id="`edit-${field.name}`"
+            v-model="editFormData[field.name]"
+            v-bind="field"
+          />
+          <p v-if="field.helperText" class="text-xs text-muted-foreground">
+            {{ field.helperText }}
+          </p>
+        </div>
+      </div>
+      <DialogFooter>
+        <Button
+          type="button"
+          variant="outline"
+          @click="showEditModal = false"
+        >
+          Cancel
+        </Button>
+        <Button
+          type="button"
+          :disabled="savingOption"
+          @click="updateOption"
+        >
+          <LoaderCircle v-if="savingOption" class="h-4 w-4 animate-spin mr-2" />
+          {{ savingOption ? 'Saving...' : 'Save Changes' }}
+        </Button>
+      </DialogFooter>
+    </DialogContent>
+  </Dialog>
+
+  <!-- Helper text -->
+  <p
+    v-if="helperText"
+    class="text-xs text-muted-foreground mt-1"
+  >
+    {{ helperText }}
+  </p>
+  </div>
+</template>
