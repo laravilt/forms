@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use Laravilt\Forms\Http\Controllers\FileUploadController;
+use Laravilt\Forms\Http\Controllers\ReactiveFieldController;
 
 /*
 |--------------------------------------------------------------------------
@@ -22,3 +23,7 @@ Route::prefix('uploads')
         Route::post('/temporary-url', [FileUploadController::class, 'temporaryUrl'])->name('temporary-url');
         Route::get('/private', [FileUploadController::class, 'servePrivate'])->name('private');
     });
+
+// Reactive fields route (for live/lazy field updates)
+Route::post('/reactive-fields/update', [ReactiveFieldController::class, 'update'])
+    ->name('reactive-fields.update');

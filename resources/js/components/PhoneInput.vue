@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import {
@@ -54,6 +54,7 @@ const selectedCountryCode = ref('+1')
 const phoneNumber = ref('')
 const isCountrySelectorOpen = ref(false)
 const searchQuery = ref('')
+let isUserTyping = false
 
 // Filtered countries based on search
 const filteredCountries = computed(() => {
@@ -67,8 +68,8 @@ const filteredCountries = computed(() => {
 })
 
 // Parse initial value if provided
-if (props.modelValue || props.value) {
-  const initialValue = props.modelValue || props.value || ''
+const initialValue = props.modelValue || props.value || ''
+if (initialValue) {
   const match = initialValue.match(/^(\+\d+)\s*(.*)$/)
   if (match) {
     selectedCountryCode.value = match[1]
@@ -78,29 +79,49 @@ if (props.modelValue || props.value) {
   }
 }
 
+// Watch for prop changes from parent (but not during user typing)
+watch(() => props.modelValue || props.value, (newValue) => {
+  if (isUserTyping) return
+
+  if (!newValue) {
+    phoneNumber.value = ''
+    return
+  }
+  const match = newValue.match(/^(\+\d+)\s*(.*)$/)
+  if (match) {
+    selectedCountryCode.value = match[1]
+    phoneNumber.value = match[2]
+  } else {
+    phoneNumber.value = newValue
+  }
+})
+
 const fullPhoneNumber = computed(() => {
   if (!phoneNumber.value) return null
   return `${selectedCountryCode.value} ${phoneNumber.value}`
 })
 
-const updatePhoneNumber = () => {
-  const value = fullPhoneNumber.value
-  emit('update:modelValue', value)
-  emit('update:value', value)
-}
-
 const updateCountryCode = (code: string) => {
   selectedCountryCode.value = code
   isCountrySelectorOpen.value = false
   searchQuery.value = ''
-  updatePhoneNumber()
+  // Emit the updated value
+  emit('update:modelValue', fullPhoneNumber.value)
+  emit('update:value', fullPhoneNumber.value)
 }
 
-const updateNumber = (event: Event) => {
-  const target = event.target as HTMLInputElement
-  phoneNumber.value = target.value
-  updatePhoneNumber()
-}
+// Watch for phoneNumber changes and emit
+watch(phoneNumber, () => {
+  isUserTyping = true
+  // Emit the updated value
+  emit('update:modelValue', fullPhoneNumber.value)
+  emit('update:value', fullPhoneNumber.value)
+  // Clear flag after a short delay (after the debounce completes in parent)
+  // The parent (TextInput) has 300ms debounce for live fields
+  setTimeout(() => {
+    isUserTyping = false
+  }, 400)
+})
 </script>
 
 <template>
@@ -166,8 +187,7 @@ const updateNumber = (event: Event) => {
     <!-- Phone Number Input -->
     <Input
       type="tel"
-      :value="phoneNumber"
-      @input="updateNumber"
+      v-model="phoneNumber"
       :placeholder="placeholder"
       :disabled="disabled"
       :readonly="readonly"

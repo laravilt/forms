@@ -27,20 +27,33 @@
         :column-span="columnSpan"
         :hint-actions="hintActions"
     >
-        <Textarea
-            :id="id || name"
-            :name="name"
-            v-model="textValue"
-            :placeholder="placeholder"
-            :rows="rows"
-            :class="[
-                hasError
-                    ? 'border-destructive focus-visible:ring-destructive'
-                    : '',
-            ]"
-            :aria-invalid="hasError ? 'true' : 'false'"
-            :aria-describedby="hasError ? `${name}-error` : undefined"
-        />
+        <div class="relative flex gap-2">
+            <!-- Suffix Actions -->
+            <div v-if="suffixActions && suffixActions.length" class="flex items-start gap-1 pt-2">
+                <ActionButton
+                    v-for="action in suffixActions"
+                    :key="action.name"
+                    v-bind="action"
+                />
+            </div>
+
+            <Textarea
+                :id="id || name"
+                :name="name"
+                :model-value="textValue"
+                @update:model-value="(val) => textValue = val"
+                :placeholder="placeholder"
+                :rows="rows"
+                class="flex-1"
+                :class="[
+                    hasError
+                        ? 'border-destructive focus-visible:ring-destructive'
+                        : '',
+                ]"
+                :aria-invalid="hasError ? 'true' : 'false'"
+                :aria-describedby="hasError ? `${name}-error` : undefined"
+            />
+        </div>
 
         <div
             v-if="showCharacterCount || showWordCount"
@@ -59,6 +72,7 @@ import { Textarea } from '@/components/ui/textarea';
 import type { ComputedRef } from 'vue';
 import { computed, inject, ref } from 'vue';
 import FieldWrapper from '../FieldWrapper.vue';
+import ActionButton from '@laravilt/actions/components/ActionButton.vue';
 
 const props = defineProps<{
     id?: string;
@@ -77,9 +91,18 @@ const props = defineProps<{
     hidden?: boolean;
     columnSpan?: number | string;
     hintActions?: any[];
+    prefixActions?: any[];
+    suffixActions?: any[];
 }>();
 
-const textValue = ref(props.value || '');
+const emit = defineEmits<{
+    'update:modelValue': [value: string]
+}>()
+
+const textValue = computed({
+    get: () => props.value || '',
+    set: (value) => emit('update:modelValue', value)
+})
 
 const wordCount = computed(() => {
     return textValue.value

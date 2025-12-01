@@ -302,6 +302,9 @@ class TextInput extends Field
             'pattern' => $this->getPattern(),
             'mask' => $this->getMask(),
             'showCharacterCount' => $this->shouldShowCharacterCount(),
+            'isLive' => $this->isLive(),
+            'isLazy' => $this->isLazy(),
+            'liveDebounce' => $this->getLiveDebounce(),
         ]);
     }
 }

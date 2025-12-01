@@ -1,40 +1,373 @@
 <template>
-    <div :class="containerClass">
-        <component
-            v-for="(component, index) in schema"
-            :key="component.id || index"
-            :is="getComponent(component)"
-            v-bind="component"
-        />
-    </div>
+    <form ref="formRef" :class="containerClass" @submit.prevent>
+        <template v-for="(component, index) in internalSchema" :key="component.name || component.id || index">
+            <!-- Render action buttons with form data -->
+            <FormActionButton
+                v-if="isAction(component)"
+                v-bind="component"
+                :getFormData="getFormData"
+            />
+
+            <!-- Render regular form components -->
+            <component
+                v-else
+                :is="getComponent(component)"
+                v-bind="getComponentProps(component)"
+                :value="isSchemaComponent(component) ? undefined : internalFormData[component.name]"
+                :modelValue="isSchemaComponent(component) ? internalFormData : undefined"
+                @update:model-value="(value) => handleComponentUpdate(component, value)"
+            />
+        </template>
+    </form>
 </template>
 
 <script setup lang="ts">
-import { defineAsyncComponent, onMounted, computed } from 'vue'
+import { defineAsyncComponent, onMounted, onUnmounted, computed, h, ref, watch, provide, nextTick } from 'vue'
+import ActionButton from '@laravilt/actions/components/ActionButton.vue'
+
+const formRef = ref<HTMLFormElement | null>(null)
+const internalFormData = ref<Record<string, any>>({})
+
+// Create a wrapper component for form actions that can collect form data
+const FormActionButton = {
+    props: {
+        getFormData: Function,
+    },
+    setup(props: any, { attrs }: any) {
+        return () => h(ActionButton, {
+            ...attrs,
+            getFormData: props.getFormData,
+        })
+    },
+}
 
 const props = defineProps<{
     schema: Array<any>
+    modelValue?: Record<string, any>
+    schemaId?: string
 }>()
+
+const emit = defineEmits<{
+    'update:modelValue': [value: Record<string, any>]
+    'update:schema': [value: any[]]
+}>()
+
+// Make schema internally reactive so it can be updated by reactive fields
+const internalSchema = ref(props.schema)
+
+// Watch for prop schema changes (from page navigation, etc.)
+watch(() => props.schema, (newSchema) => {
+    internalSchema.value = newSchema
+})
+
+// Recursively extract all field components and their default values from schema
+const extractFieldDefaults = (schema: Array<any>): Record<string, any> => {
+    const defaults: Record<string, any> = {}
+    const schemaComponentTypes = ['tabs', 'section', 'grid']
+
+    // Safety check - ensure schema is an array
+    if (!schema || !Array.isArray(schema)) {
+        console.warn('extractFieldDefaults: schema is not an array', schema)
+        return defaults
+    }
+
+    for (const component of schema) {
+        // Skip actions
+        if (component.hasAction === true || (component.name && !component.component)) {
+            continue
+        }
+
+        // If it's a tabs component, extract from all tabs
+        if (component.component === 'tabs' && component.tabs && Array.isArray(component.tabs)) {
+            for (const tab of component.tabs) {
+                if (tab.schema && Array.isArray(tab.schema)) {
+                    Object.assign(defaults, extractFieldDefaults(tab.schema))
+                }
+            }
+            continue // Don't add the tabs component itself as a field
+        }
+
+        // If it's a schema component (section, grid), recurse into its schema
+        if (schemaComponentTypes.includes(component.component) && component.schema && Array.isArray(component.schema)) {
+            Object.assign(defaults, extractFieldDefaults(component.schema))
+            continue // Don't add the schema component itself as a field
+        }
+
+        // If it has a name and component type (it's an actual field), add its default value
+        if (component.name && component.component && !schemaComponentTypes.includes(component.component)) {
+            // Use defaultValue or default, but NOT value (value could be an object from backend)
+            // For hidden fields, also check the 'default' property
+            // Use ?? (nullish coalescing) to properly handle false/0 values
+            defaults[component.name] = component.defaultValue ?? component.default ?? component.value ?? null
+        }
+    }
+
+    return defaults
+}
+
+// Initialize form data with defaults from schema
+const initializeFormData = () => {
+    const defaults = extractFieldDefaults(internalSchema.value)
+
+    // Merge with any provided modelValue
+    internalFormData.value = {
+        ...defaults,
+        ...(props.modelValue || {})
+    }
+
+    emit('update:modelValue', internalFormData.value)
+}
+
+// Handle action-updated data events
+const handleActionUpdatedData = (event: CustomEvent) => {
+    const updatedData = event.detail;
+
+    if (updatedData && typeof updatedData === 'object') {
+        // Merge the updated data into internal form data
+        internalFormData.value = {
+            ...internalFormData.value,
+            ...updatedData
+        };
+        emit('update:modelValue', internalFormData.value);
+    }
+};
+
+// Initialize on mount
+onMounted(() => {
+    initializeFormData();
+
+    // Listen for action-updated-data events from ActionButton
+    window.addEventListener('action-updated-data', handleActionUpdatedData as EventListener);
+});
+
+// Cleanup on unmount
+onUnmounted(() => {
+    window.removeEventListener('action-updated-data', handleActionUpdatedData as EventListener);
+});
+
+// Watch for internal schema changes (from reactive fields)
+// Don't re-initialize form data as it will reset user input
+// The schema update only changes field options, not the data itself
+watch(internalSchema, () => {
+    // Intentionally empty - we don't need to do anything when schema changes
+    // The reactive update already handles option changes
+}, { deep: true })
+
+// Watch for external modelValue changes and merge them
+watch(() => props.modelValue, (newValue) => {
+    if (newValue) {
+        internalFormData.value = {
+            ...internalFormData.value,
+            ...newValue
+        }
+    }
+}, { deep: true })
+
+// Handle component update events
+const handleComponentUpdate = async (component: any, value: any) => {
+    if (isSchemaComponent(component)) {
+        // For schema components (Section, Grid, Tabs), value is an object with field updates
+        // Update internal form data first
+        const oldData = { ...internalFormData.value }
+
+        // Check if any values actually changed before proceeding
+        let hasChanges = false
+        for (const [fieldName, fieldValue] of Object.entries(value)) {
+            if (oldData[fieldName] !== fieldValue) {
+                hasChanges = true
+                break
+            }
+        }
+
+        // Skip if nothing changed (performance optimization)
+        if (!hasChanges) {
+            return
+        }
+
+        internalFormData.value = { ...internalFormData.value, ...value }
+        emit('update:modelValue', internalFormData.value)
+
+        // Check each field that changed for reactivity
+        for (const [fieldName, fieldValue] of Object.entries(value)) {
+            // Only trigger if value actually changed
+            if (oldData[fieldName] !== fieldValue) {
+                // Find the field in schema and check if it's reactive
+                const field = findFieldInSchema(internalSchema.value, fieldName)
+                if (field && (field.isLive || field.isLazy)) {
+                    await triggerReactiveFieldUpdate(fieldName, field)
+                }
+            }
+        }
+    } else {
+        await updateValue(component.name, value)
+    }
+}
+
+const updateValue = async (name: string, value: any) => {
+    // Update internal form data
+    internalFormData.value = {
+        ...internalFormData.value,
+        [name]: value
+    }
+
+    emit('update:modelValue', internalFormData.value)
+
+    // Check if this field is reactive (live/lazy)
+    const field = findFieldInSchema(internalSchema.value, name)
+
+    if (field && (field.isLive || field.isLazy)) {
+        await triggerReactiveFieldUpdate(name, field)
+    }
+}
+
+// Find a field by name in the schema (recursively)
+const findFieldInSchema = (schema: any[], fieldName: string): any => {
+    for (const component of schema) {
+        if (component.name === fieldName) {
+            return component
+        }
+
+        // Check nested schemas
+        if (component.component === 'tabs' && component.tabs) {
+            for (const tab of component.tabs) {
+                if (tab.schema) {
+                    const found = findFieldInSchema(tab.schema, fieldName)
+                    if (found) return found
+                }
+            }
+        }
+
+        if (component.schema) {
+            const found = findFieldInSchema(component.schema, fieldName)
+            if (found) return found
+        }
+    }
+    return null
+}
+
+// Trigger reactive field update
+const triggerReactiveFieldUpdate = async (fieldName: string, field: any) => {
+    const debounceMs = field.isLazy
+        ? (field.liveDebounce || 500)
+        : (field.isLive && field.liveDebounce ? field.liveDebounce : 0)
+
+    // TODO: Implement debouncing if needed
+    try {
+        const payload = {
+            controller: 'App\\Http\\Controllers\\DemoController',
+            method: 'getSchema',
+            data: internalFormData.value,
+            changed_field: fieldName,
+        }
+
+        const response = await fetch('/reactive-fields/update', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+            },
+            body: JSON.stringify(payload),
+        })
+
+        if (!response.ok) {
+            throw new Error('Failed to update reactive fields')
+        }
+
+        const result = await response.json()
+
+        if (result.schema) {
+            updateSchema(result.schema)
+        }
+
+        // Update form data if backend modified it (from afterStateUpdated)
+        if (result.data) {
+            internalFormData.value = { ...internalFormData.value, ...result.data }
+            emit('update:modelValue', internalFormData.value)
+        }
+    } catch (error) {
+        console.error('[FormRenderer] Error updating reactive fields:', error)
+    }
+}
+
+// Collect all form data - just return the internal tracked data
+const getFormData = () => {
+    // Return a copy to avoid mutations
+    return { ...internalFormData.value }
+}
+
+// Validate the form using HTML5 validation
+const validateForm = () => {
+    if (!formRef.value) {
+        return true
+    }
+
+    const isValid = formRef.value.checkValidity()
+
+    if (!isValid) {
+        // Trigger validation UI (show error messages)
+        formRef.value.reportValidity()
+    }
+
+    return isValid
+}
+
+// Function to update schema (for reactive fields)
+const updateSchema = (newSchema: any[]) => {
+    // Save current scroll position and focused element
+    const scrollX = window.scrollX
+    const scrollY = window.scrollY
+    const activeElement = document.activeElement as HTMLElement
+
+    // Simply update the schema - Vue's reactivity will handle the updates
+    // Since we're using ref(), Vue will detect the change
+    internalSchema.value = newSchema
+
+    // Restore scroll position and focus immediately in next tick
+    nextTick(() => {
+        // Restore scroll position
+        window.scrollTo({
+            top: scrollY,
+            left: scrollX,
+            behavior: 'instant' as ScrollBehavior
+        })
+
+        // Restore focus if element still exists
+        if (activeElement && document.contains(activeElement)) {
+            activeElement.focus({ preventScroll: true })
+        }
+    })
+}
+
+// Provide getFormData, validateForm, updateSchema, and schemaId to all child components
+provide('getFormData', getFormData)
+provide('validateForm', validateForm)
+provide('updateSchema', updateSchema)
+provide('schemaId', props.schemaId || null)
+
+// Check if an item is an action
+const isAction = (item: any) => {
+    // Actions have hasAction property or don't have a component property
+    return item.hasAction === true || (item.name && !item.component)
+}
+
+// Check if a component is a schema component (needs entire modelValue, not just a field value)
+const isSchemaComponent = (component: any) => {
+    const schemaComponents = ['tabs', 'section', 'grid']
+    return schemaComponents.includes(component.component)
+}
 
 // Determine container spacing based on what we're rendering
 const containerClass = computed(() => {
-    if (!props.schema || props.schema.length === 0) return ''
+    if (!internalSchema.value || !Array.isArray(internalSchema.value) || internalSchema.value.length === 0) return ''
 
     // Check if we're rendering sections - if so, use space-y-12
-    const hasSections = props.schema.some(c => c.component === 'section')
+    const hasSections = internalSchema.value.some(c => c.component === 'section')
     if (hasSections) return 'space-y-12'
 
     // Otherwise use space-y-6 for general spacing
     return 'space-y-6'
 })
 
-onMounted(() => {
-    console.log('FormRenderer schema:', props.schema)
-    if (props.schema && props.schema.length > 0) {
-        console.log('First component:', props.schema[0])
-        console.log('Component type:', props.schema[0]?.component || props.schema[0]?.type)
-    }
-})
 
 // Map component types to their Vue components
 const componentMap: Record<string, any> = {
@@ -51,6 +384,7 @@ const componentMap: Record<string, any> = {
     radio: defineAsyncComponent(() => import('./fields/Radio.vue')),
     toggle: defineAsyncComponent(() => import('./fields/Toggle.vue')),
     toggle_buttons: defineAsyncComponent(() => import('./fields/ToggleButtons.vue')),
+    hidden: defineAsyncComponent(() => import('./fields/Hidden.vue')),
     date_picker: defineAsyncComponent(() => import('./fields/DatePicker.vue')),
     time_picker: defineAsyncComponent(() => import('./fields/TimePicker.vue')),
     date_time_picker: defineAsyncComponent(() => import('./fields/DateTimePicker.vue')),
@@ -73,18 +407,13 @@ const getComponent = (component: any) => {
     // Get component type from the component object
     const type = component.component || 'div'
 
-    console.log('FormRenderer rendering:', {
-        component: type,
-        exists: !!componentMap[type],
-        name: component.name
-    })
-
-    const result = componentMap[type] || 'div'
-    if (result === 'div') {
-        console.warn('FormRenderer: Falling back to div for:', component)
-    }
-
     // Return the mapped component or a div fallback
-    return result
+    return componentMap[type] || 'div'
+}
+
+// Get component props, excluding value and modelValue since we set them explicitly
+const getComponentProps = (component: any) => {
+    const { value, modelValue, ...props } = component
+    return props
 }
 </script>

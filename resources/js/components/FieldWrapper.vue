@@ -49,14 +49,13 @@
                     v-if="hintActions && hintActions.length"
                     class="flex items-center gap-2"
                 >
-<!--                    <ActionButton-->
-<!--                        v-for="action in hintActions"-->
-<!--                        :key="action.name"-->
-<!--                        v-bind="action"-->
-<!--                        size="sm"-->
-<!--                        variant="link"-->
-<!--                        class="!h-auto !p-0"-->
-<!--                    />-->
+                    <ActionButton
+                        v-for="action in hintActions"
+                        :key="action.name"
+                        v-bind="action"
+                        size="sm"
+                        class="!h-auto !p-0"
+                    />
                 </div>
             </div>
 
@@ -125,7 +124,7 @@
 </template>
 
 <script setup lang="ts">
-// import ActionButton from '@laravilt/actions/components/ActionButton.vue';
+import ActionButton from '@laravilt/actions/components/ActionButton.vue';
 import type { ComputedRef } from 'vue';
 import { computed, inject } from 'vue';
 

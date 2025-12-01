@@ -28,7 +28,15 @@
             :value="String(index)"
             class="space-y-6 mt-6"
         >
-            <FormRenderer v-if="tab.schema" :schema="tab.schema" />
+            <FormRenderer
+                v-if="tab.schema"
+                :schema="tab.schema"
+                :model-value="modelValue"
+                @update:model-value="(value) => {
+                    console.log('Tabs received update from FormRenderer:', value)
+                    emit('update:modelValue', value)
+                }"
+            />
         </TabsContent>
     </Tabs>
 </template>
@@ -42,6 +50,11 @@ defineProps<{
     tabs: Array<any>
     activeTab?: number
     persistTabInQueryString?: boolean
+    modelValue?: Record<string, any>
+}>()
+
+const emit = defineEmits<{
+    'update:modelValue': [value: Record<string, any>]
 }>()
 
 // Convert kebab-case or snake_case icon names to PascalCase for lucide-vue-next

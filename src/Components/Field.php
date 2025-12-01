@@ -3,6 +3,7 @@
 namespace Laravilt\Forms\Components;
 
 use Closure;
+use Laravilt\Forms\Concerns\CanBeReactive;
 use Laravilt\Forms\Concerns\HasDefaultValue;
 use Laravilt\Forms\Concerns\HasValidation;
 use Laravilt\Support\Component;
@@ -19,9 +20,11 @@ use Laravilt\Support\Component;
  * - Error handling
  * - Labels and helper text
  * - Visibility control
+ * - Reactive field support (live/lazy)
  */
 abstract class Field extends Component
 {
+    use CanBeReactive;
     use HasDefaultValue;
     use HasValidation;
 

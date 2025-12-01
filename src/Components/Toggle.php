@@ -200,6 +200,9 @@ class Toggle extends Field
             'onColor' => $this->getOnColor(),
             'offColor' => $this->getOffColor(),
             'isOn' => $this->isOn(),
+            'isLive' => $this->isLive(),
+            'isLazy' => $this->isLazy(),
+            'liveDebounce' => $this->getLiveDebounce(),
         ]);
     }
 }

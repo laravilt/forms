@@ -154,6 +154,9 @@ class Checkbox extends Field
             'description' => $this->getDescription(),
             'isChecked' => $this->isChecked(),
             'isCheckboxList' => $this->isCheckboxList(),
+            'isLive' => $this->isLive(),
+            'isLazy' => $this->isLazy(),
+            'liveDebounce' => $this->getLiveDebounce(),
         ]);
     }
 }

@@ -1,13 +1,15 @@
 <template>
-    <div :class="gridClasses">
+    <div v-if="visibleSchema.length > 0" :class="gridClasses">
         <div
-            v-for="(child, index) in schema"
-            :key="child.id || index"
+            v-for="(child, index) in visibleSchema"
+            :key="child.name || child.id || index"
             :class="getColumnSpanClass(child)"
         >
             <component
                 :is="getComponent(child)"
-                v-bind="child"
+                v-bind="getComponentProps(child)"
+                :value="modelValue?.[child.name]"
+                @update:model-value="(value) => updateValue(child.name, value)"
             />
         </div>
     </div>
@@ -19,7 +21,31 @@ import { computed, defineAsyncComponent } from 'vue'
 const props = defineProps<{
     columns: number | Record<string, number>
     schema: Array<any>
+    modelValue?: Record<string, any>
 }>()
+
+const emit = defineEmits<{
+    'update:modelValue': [value: Record<string, any>]
+}>()
+
+// Filter out hidden fields from schema
+const visibleSchema = computed(() => {
+    return props.schema.filter(child => child && child.hidden !== true)
+})
+
+const updateValue = (name: string, value: any) => {
+    const newValue = {
+        ...(props.modelValue || {}),
+        [name]: value
+    }
+    emit('update:modelValue', newValue)
+}
+
+// Get component props, excluding value and modelValue since we set them explicitly
+const getComponentProps = (component: any) => {
+    const { value, modelValue, ...props } = component
+    return props
+}
 
 const componentMap: Record<string, any> = {
     text_input: defineAsyncComponent(() => import('../fields/TextInput.vue')),
@@ -49,18 +75,7 @@ const componentMap: Record<string, any> = {
 
 const getComponent = (component: any) => {
     const type = component.component || 'div'
-    console.log('Grid rendering:', {
-        component: type,
-        exists: !!componentMap[type],
-        hasType: !!component.type,
-        actualType: component.type,
-        name: component.name
-    })
-    const result = componentMap[type] || 'div'
-    if (result === 'div') {
-        console.warn('Falling back to div for:', component)
-    }
-    return result
+    return componentMap[type] || 'div'
 }
 
 const gridClasses = computed(() => {

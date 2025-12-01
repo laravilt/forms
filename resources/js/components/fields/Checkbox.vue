@@ -38,6 +38,7 @@
             <Checkbox
                 :id="name"
                 :name="name"
+                v-model="checkboxValue"
                 :value="checkedValue ?? true"
                 :disabled="disabled"
                 :aria-invalid="hasError ? 'true' : 'false'"
@@ -85,7 +86,7 @@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import type { ComputedRef } from 'vue';
-import { computed, inject } from 'vue';
+import { computed, inject, ref, watch } from 'vue';
 import FieldWrapper from '../FieldWrapper.vue';
 
 const props = defineProps<{
@@ -104,13 +105,29 @@ const props = defineProps<{
     checkedValue?: any;
     uncheckedValue?: any;
     hintActions?: any[];
+    isLive?: boolean;
+    isLazy?: boolean;
+    liveDebounce?: number;
 }>();
+
+const emit = defineEmits<{
+    'update:modelValue': [value: any]
+}>();
+
+const checkboxValue = computed({
+    get: () => props.value,
+    set: (value) => emit('update:modelValue', value)
+});
 
 // Inject errors from parent
 const errors = inject<ComputedRef<Record<string, string | string[]>>>(
     'errors',
     computed(() => ({})),
 );
+
+// Inject dependencies for reactive fields
+const getFormData = inject<(() => Record<string, any>) | undefined>('getFormData', undefined);
+const updateSchema = inject<((schema: any[]) => void) | undefined>('updateSchema', undefined);
 
 const errorMessage = computed(() => {
     const error = errors.value[props.name];

@@ -36,7 +36,7 @@
             <Switch
                 :id="name"
                 :name="name"
-                v-model:checked="toggleValue"
+                v-model="toggleValue"
                 :disabled="disabled"
                 :aria-invalid="hasError ? 'true' : 'false'"
                 :aria-describedby="hasError ? `${name}-error` : undefined"
@@ -48,8 +48,8 @@
 <script setup lang="ts">
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import type { ComputedRef } from 'vue';
-import { computed, inject, ref } from 'vue';
+import type { ComputedRef, Ref } from 'vue';
+import { computed, inject, ref, watch } from 'vue';
 import FieldWrapper from '../FieldWrapper.vue';
 
 const props = defineProps<{
@@ -63,15 +63,29 @@ const props = defineProps<{
     hidden?: boolean;
     columnSpan?: number | string;
     hintActions?: any[];
+    isLive?: boolean;
+    isLazy?: boolean;
+    liveDebounce?: number;
 }>();
 
-const toggleValue = ref(props.value || false);
+const emit = defineEmits<{
+    'update:modelValue': [value: boolean]
+}>();
+
+const toggleValue = computed({
+    get: () => props.value ?? false,
+    set: (value) => emit('update:modelValue', value)
+});
 
 // Inject errors from parent
 const errors = inject<ComputedRef<Record<string, string | string[]>>>(
     'errors',
     computed(() => ({})),
 );
+
+// Inject dependencies for reactive fields
+const getFormData = inject<(() => Record<string, any>) | undefined>('getFormData', undefined);
+const updateSchema = inject<((schema: any[]) => void) | undefined>('updateSchema', undefined);
 
 const errorMessage = computed(() => {
     const error = errors.value[props.name];

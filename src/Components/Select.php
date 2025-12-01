@@ -95,6 +95,15 @@ class Select extends Field
     protected ?string $optionsUrl = null;
 
     /**
+     * Whether the field should react to changes immediately (live) or with debounce (lazy).
+     */
+    protected bool $isLive = false;
+
+    protected bool $isLazy = false;
+
+    protected int $liveDebounce = 500;
+
+    /**
      * Set the select options.
      *
      * @param  array<string|int, string>|Closure  $options
@@ -102,6 +111,34 @@ class Select extends Field
     public function options(array|Closure $options): static
     {
         $this->options = $options;
+
+        return $this;
+    }
+
+    /**
+     * Make the field reactive (live) - updates trigger immediate re-evaluation.
+     *
+     * @param  bool  $condition  Whether to enable live updates
+     * @param  int  $debounce  Debounce delay in milliseconds
+     */
+    public function live(bool $condition = true, int $debounce = 0): static
+    {
+        $this->isLive = $condition;
+        $this->liveDebounce = $debounce;
+
+        return $this;
+    }
+
+    /**
+     * Make the field reactive with debounce (lazy) - updates trigger debounced re-evaluation.
+     *
+     * @param  bool  $condition  Whether to enable lazy updates
+     * @param  int  $debounce  Debounce delay in milliseconds (default: 500ms)
+     */
+    public function lazy(bool $condition = true, int $debounce = 500): static
+    {
+        $this->isLazy = $condition;
+        $this->liveDebounce = $debounce;
 
         return $this;
     }
@@ -570,10 +607,24 @@ class Select extends Field
             $reflection = new \ReflectionFunction($this->options);
             $parameters = $reflection->getParameters();
 
-            // If closure has parameters (Get/Set), return empty array
-            // These will be evaluated dynamically on the frontend
+            // If closure has parameters (Get/Set), evaluate with current form data
             if (count($parameters) > 0) {
-                return [];
+                // Get formData from the request (sent during reactive updates)
+                $formData = request()->input('formData', []);
+
+                // Create Get and Set utilities
+                $get = new \Laravilt\Support\Utilities\Get($formData);
+                $set = new \Laravilt\Support\Utilities\Set($formData);
+
+                // Evaluate the closure with Get and Set
+                $evaluatedOptions = ($this->options)($get, $set);
+
+                // If the evaluation returns null or non-array, return empty array
+                if (!is_array($evaluatedOptions)) {
+                    return [];
+                }
+
+                return $evaluatedOptions;
             }
 
             // Otherwise, evaluate the closure (simple closure with no params)
@@ -857,6 +908,15 @@ class Select extends Field
 
     public function toLaraviltProps(): array
     {
+        //  Detect closure-based options and extract dependencies
+        $hasDynamicOptions = $this->options instanceof \Closure;
+        $closureDependencies = [];
+
+        if ($hasDynamicOptions && empty($this->dependsOn)) {
+            // Auto-detect dependencies from closure parameters
+            $closureDependencies = $this->extractClosureDependencies($this->options);
+        }
+
         return array_merge(parent::toLaraviltProps(), [
             'name' => $this->name,
             'options' => $this->transformOptions($this->getResolvedOptions()),
@@ -871,10 +931,14 @@ class Select extends Field
             'optionsLimit' => $this->optionsLimit,
             'minItems' => $this->minItems,
             'maxItems' => $this->maxItems,
-            'dependsOn' => $this->dependsOn,
+            'dependsOn' => ! empty($this->dependsOn) ? $this->dependsOn : $closureDependencies,
             'optionsUrl' => $this->optionsUrl,
             'allowHtml' => $this->allowHtml,
             'wrapOptionLabels' => $this->wrapOptionLabels,
+            'isLive' => $this->isLive,
+            'isLazy' => $this->isLazy,
+            'liveDebounce' => $this->liveDebounce,
+            'hasDynamicOptions' => $hasDynamicOptions,
         ]);
     }
 }

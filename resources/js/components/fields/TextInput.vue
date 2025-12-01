@@ -37,45 +37,67 @@
         <PhoneInput
             v-if="type === 'tel'"
             :name="name"
-            v-model="inputValue"
+            :model-value="localValue"
+            @update:model-value="handleInput"
             :placeholder="placeholder"
             :disabled="disabled"
             :readonly="readonly"
         />
 
         <!-- Regular input for other types -->
-        <div v-else class="relative">
-            <div
-                v-if="prefixText"
-                class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-sm text-muted-foreground"
-            >
-                {{ prefixText }}
+        <div v-else class="relative flex items-center gap-2">
+            <!-- Prefix Actions -->
+            <div v-if="prefixActions && prefixActions.length" class="flex items-center gap-1">
+                <ActionButton
+                    v-for="action in prefixActions"
+                    :key="action.name"
+                    v-bind="action"
+                />
             </div>
 
-            <Input
-                :id="id || name"
-                :name="name"
-                :type="type || 'text'"
-                v-model="inputValue"
-                :placeholder="placeholder"
-                :required="required"
-                :disabled="disabled"
-                :readonly="readonly"
-                :autofocus="autofocus"
-                :autocomplete="autocomplete"
-                :minlength="minLength"
-                :maxlength="maxLength"
-                :pattern="pattern"
-                v-bind="extraAttributes"
-                :class="[
-                    prefixText ? 'pl-8' : '',
-                    hasError
-                        ? 'border-destructive focus-visible:ring-destructive'
-                        : '',
-                ]"
-                :aria-invalid="hasError ? 'true' : 'false'"
-                :aria-describedby="hasError ? `${name}-error` : undefined"
-            />
+            <div class="relative flex-1">
+                <div
+                    v-if="prefixText"
+                    class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-sm text-muted-foreground"
+                >
+                    {{ prefixText }}
+                </div>
+
+                <Input
+                    :id="id || name"
+                    :name="name"
+                    :type="type || 'text'"
+                    v-model="inputValue"
+                    :placeholder="placeholder"
+                    :required="required"
+                    :disabled="disabled"
+                    :readonly="readonly"
+                    :autofocus="autofocus"
+                    :autocomplete="autocomplete"
+                    :minlength="minLength"
+                    :maxlength="maxLength"
+                    :pattern="pattern"
+                    v-bind="extraAttributes"
+                    :class="[
+                        prefixText ? 'pl-8' : '',
+                        hasError
+                            ? 'border-destructive focus-visible:ring-destructive'
+                            : '',
+                    ]"
+                    :aria-invalid="hasError ? 'true' : 'false'"
+                    :aria-describedby="hasError ? `${name}-error` : undefined"
+                />
+            </div>
+
+            <!-- Suffix Actions -->
+            <div v-if="suffixActions && suffixActions.length" class="flex items-center gap-1">
+                <ActionButton
+                    v-for="action in suffixActions"
+                    :key="action.name"
+                    v-bind="action"
+                    :getFormData="getFormData"
+                />
+            </div>
         </div>
 
         <div
@@ -90,27 +112,12 @@
 <script setup lang="ts">
 import { Input } from '@/components/ui/input';
 import type { ComputedRef } from 'vue';
-import { computed, inject, onMounted, ref, useSlots } from 'vue';
+import { computed, inject, onMounted, ref, useSlots, watch } from 'vue';
 import FieldWrapper from '../FieldWrapper.vue';
 import PhoneInput from '../PhoneInput.vue';
+import ActionButton from '@laravilt/actions/components/ActionButton.vue';
 
 const slots = useSlots();
-
-onMounted(() => {
-    console.log('TextInput mounted for:', props.name);
-    console.log('Has default slot:', !!slots.default);
-    console.log('Props:', {
-        name: props.name,
-        label: props.label,
-        type: props.type,
-        placeholder: props.placeholder,
-    });
-    console.log('inputValue:', inputValue.value);
-    console.log(
-        'Element:',
-        document.querySelector(`[data-field-name="${props.name}"]`),
-    );
-});
 
 const props = defineProps<{
     id?: string;
@@ -135,17 +142,83 @@ const props = defineProps<{
     hidden?: boolean;
     columnSpan?: number | string;
     hintActions?: any[];
+    prefixActions?: any[];
+    suffixActions?: any[];
+    isLive?: boolean;
+    isLazy?: boolean;
+    liveDebounce?: number;
 }>();
 
-const inputValue = ref(props.value || '');
+const emit = defineEmits<{
+    'update:modelValue': [value: string]
+}>()
 
-const characterCount = computed(() => inputValue.value.length);
+// Use local state for input to avoid cursor position issues with reactive fields
+const localValue = ref(props.value || '')
+let debounceTimeout: ReturnType<typeof setTimeout> | null = null
+let isUserTyping = false
+
+// Sync local value when prop changes from external source (not from user input)
+watch(() => props.value, (newValue) => {
+    // Don't update if user is actively typing
+    if (isUserTyping) {
+        return
+    }
+
+    // Only update local value if it's different
+    if (newValue !== localValue.value) {
+        localValue.value = newValue || ''
+    }
+})
+
+const handleInput = (value: string | null) => {
+    // Mark that user is typing
+    isUserTyping = true
+
+    // Update local value immediately for smooth typing
+    localValue.value = value || ''
+
+    // Clear existing debounce timeout
+    if (debounceTimeout) {
+        clearTimeout(debounceTimeout)
+    }
+
+    // For live/lazy fields, debounce the emit
+    if (props.isLive || props.isLazy) {
+        const delay = props.isLazy ? (props.liveDebounce || 500) : (props.liveDebounce || 300)
+        debounceTimeout = setTimeout(() => {
+            emit('update:modelValue', value || '')
+            // Allow prop updates after a short delay
+            setTimeout(() => {
+                isUserTyping = false
+            }, 100)
+        }, delay)
+    } else {
+        // For non-reactive fields, emit immediately
+        emit('update:modelValue', value || '')
+        // Allow prop updates after a short delay
+        setTimeout(() => {
+            isUserTyping = false
+        }, 100)
+    }
+}
+
+const inputValue = computed({
+    get: () => localValue.value,
+    set: handleInput
+})
+
+const characterCount = computed(() => localValue.value.length);
 
 // Inject errors from parent
 const errors = inject<ComputedRef<Record<string, string | string[]>>>(
     'errors',
     computed(() => ({})),
 );
+
+// Inject dependencies for reactive fields
+const getFormData = inject<(() => Record<string, any>) | undefined>('getFormData', undefined);
+const updateSchema = inject<((schema: any[]) => void) | undefined>('updateSchema', undefined);
 
 const errorMessage = computed(() => {
     const error = errors.value[props.name];

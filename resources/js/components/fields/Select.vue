@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, inject, Component as VueComponent } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, inject, Component as VueComponent } from 'vue'
+import { router } from '@inertiajs/vue3'
 import {
   ComboboxAnchor,
   ComboboxContent,
@@ -25,6 +26,7 @@ import {
 import TextInput from './TextInput.vue'
 import Textarea from './Textarea.vue'
 import Toggle from './Toggle.vue'
+import { useReactiveField } from '../../composables/useReactiveField'
 
 interface Option {
   value: string
@@ -77,6 +79,10 @@ interface Props {
   optionsUrl?: string // API endpoint for loading dynamic options
   hasDynamicOptions?: boolean // Whether options are closure-based (evaluated server-side)
   live?: boolean | string | number // Reactive mode
+  isLive?: boolean // Whether field triggers reactive updates
+  isLazy?: boolean // Whether field triggers debounced reactive updates
+  liveDebounce?: number // Debounce delay for reactive updates
+  meta?: Record<string, any> // Additional metadata (e.g., dependentOptions)
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -102,6 +108,10 @@ const props = withDefaults(defineProps<Props>(), {
   editOptionForm: () => [], // Default empty array for edit form
   dependsOn: () => [], // Default empty array for dependent fields
   live: false,
+  isLive: false,
+  isLazy: false,
+  liveDebounce: 500,
+  meta: () => ({}),
 })
 
 const emit = defineEmits<{
@@ -210,6 +220,116 @@ const selectedValues = computed<string[]>({
     }
   }
 })
+
+// Inject getFormData from FormRenderer (for reactive fields)
+const getFormData = inject<(() => Record<string, any>) | undefined>('getFormData', undefined)
+
+// Inject updateSchema from FormRenderer (for updating schema after reactive field changes)
+const updateSchema = inject<((schema: any[]) => void) | undefined>('updateSchema', undefined)
+
+// Reactive field logic: Watch for changes and POST to reactive endpoint
+if ((props.isLive || props.isLazy) && props.name) {
+  let reloadTimeout: ReturnType<typeof setTimeout> | null = null
+  let isUpdating = ref(false) // Flag to prevent duplicate updates
+
+  // Determine debounce delay
+  const debounceMs = props.isLazy
+    ? props.liveDebounce
+    : (props.isLive && props.liveDebounce > 0 ? props.liveDebounce : 0)
+
+  watch(selectedValues, async (newValue, oldValue) => {
+    // Skip if already updating
+    if (isUpdating.value) {
+      return
+    }
+
+    // Clear existing timeout
+    if (reloadTimeout) {
+      clearTimeout(reloadTimeout)
+    }
+
+    // Function to trigger reactive field update
+    const triggerUpdate = async () => {
+      isUpdating.value = true
+      const formData = getFormData ? getFormData() : {}
+
+      try {
+        // POST to reactive field endpoint
+        const response = await fetch('/reactive-fields/update', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+          },
+          body: JSON.stringify({
+            controller: 'App\\Http\\Controllers\\DemoController',
+            method: 'getSchema',
+            data: formData,
+            changed_field: props.name,
+          }),
+        })
+
+        if (!response.ok) {
+          throw new Error('Failed to update reactive fields')
+        }
+
+        const result = await response.json()
+
+        // Update the schema with the new data
+        if (updateSchema && result.schema) {
+          updateSchema(result.schema)
+        }
+      } catch (error) {
+        console.error('Error updating reactive fields:', error)
+      } finally {
+        // Reset the flag after a short delay to allow schema updates to complete
+        setTimeout(() => {
+          isUpdating.value = false
+        }, 100)
+      }
+    }
+
+    // Apply debounce if needed
+    if (debounceMs > 0) {
+      reloadTimeout = setTimeout(triggerUpdate, debounceMs)
+    } else {
+      await triggerUpdate()
+    }
+  })
+}
+
+// Watch for options changes and validate current selection
+// This ensures dependent fields reset when their parent field changes
+watch(() => props.options, (newOptions, oldOptions) => {
+  // Update the internal options ref with new options from props
+  if (hasStaticOptions.value) {
+    options.value = newOptions || []
+
+    // Update cache with new option labels
+    selectedOptionsCache.value.clear()
+    options.value.forEach((option) => {
+      selectedOptionsCache.value.set(option.value, option.label)
+    })
+  }
+
+  if (!newOptions || newOptions.length === 0) {
+    // No options available, clear selection
+    if (selectedValues.value.length > 0) {
+      selectedValues.value = []
+    }
+    return
+  }
+
+  // Check if current selected values are still valid in new options
+  const validValues = selectedValues.value.filter(val =>
+    newOptions.some(opt => opt.value === val)
+  )
+
+  // If any values became invalid, update selection to only keep valid ones
+  if (validValues.length !== selectedValues.value.length) {
+    selectedValues.value = validValues
+  }
+}, { deep: true })
 
 // Get label for a value with HTML support
 const getLabelForValue = (val: string): string => {
@@ -604,6 +724,17 @@ onMounted(async () => {
     })
 
     initialLoadComplete.value = true
+  } else if (props.meta?.dependentOptions) {
+    // This select has dependent options passed via meta
+    // Use the reactive composable to filter options based on dependencies
+    options.value = getFilteredOptions(props.meta.dependentOptions)
+
+    // Cache the option labels
+    options.value.forEach((option) => {
+      selectedOptionsCache.value.set(option.value, option.label)
+    })
+
+    initialLoadComplete.value = true
   } else {
     // For closure-based or dependent selects, trigger fetch if dependencies are met
     if (props.hasDynamicOptions || (props.dependsOn && props.dependsOn.length > 0)) {
@@ -620,6 +751,39 @@ onMounted(async () => {
     }
   }
 })
+
+// Listen for field-changed events from dependent fields (for reactive selects)
+if (props.dependsOn && props.dependsOn.length > 0 && props.meta?.dependentOptions) {
+  const handleFieldChange = (event: CustomEvent) => {
+    const { fieldName } = event.detail
+
+    // Check if the changed field is one we depend on
+    if (props.dependsOn.includes(fieldName)) {
+      // Re-filter options based on new form data
+      options.value = getFilteredOptions(props.meta.dependentOptions)
+
+      // Clear current selection when dependency changes
+      if (selectedValues.value.length > 0) {
+        selectedValues.value = []
+        emit('update:modelValue', props.multiple ? [] : null)
+      }
+
+      // Update cache
+      selectedOptionsCache.value.clear()
+      options.value.forEach((option) => {
+        selectedOptionsCache.value.set(option.value, option.label)
+      })
+    }
+  }
+
+  onMounted(() => {
+    window.addEventListener('field-changed', handleFieldChange as EventListener)
+  })
+
+  onUnmounted(() => {
+    window.removeEventListener('field-changed', handleFieldChange as EventListener)
+  })
+}
 
 // Handle search term change from ComboboxRoot
 let searchTimeout: ReturnType<typeof setTimeout> | undefined
