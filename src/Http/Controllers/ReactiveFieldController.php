@@ -26,7 +26,6 @@ class ReactiveFieldController extends Controller
      *
      * Returns updated field configurations (options, etc.)
      *
-     * @param  Request  $request
      * @return \Illuminate\Http\JsonResponse
      */
     public function update(Request $request)
@@ -45,7 +44,7 @@ class ReactiveFieldController extends Controller
 
         try {
             // Instantiate the controller
-            if (!class_exists($controllerClass)) {
+            if (! class_exists($controllerClass)) {
                 return response()->json([
                     'error' => 'Controller not found',
                 ], 404);
@@ -53,7 +52,7 @@ class ReactiveFieldController extends Controller
 
             $controller = app($controllerClass);
 
-            if (!method_exists($controller, $method)) {
+            if (! method_exists($controller, $method)) {
                 return response()->json([
                     'error' => 'Method not found',
                 ], 404);
@@ -96,7 +95,7 @@ class ReactiveFieldController extends Controller
             ]);
 
             return response()->json([
-                'error' => 'Failed to update fields: ' . $e->getMessage(),
+                'error' => 'Failed to update fields: '.$e->getMessage(),
             ], 500);
         }
     }
@@ -107,7 +106,7 @@ class ReactiveFieldController extends Controller
      * @param  array  $schema  Array of serialized component data
      * @param  Get  $get  Get utility for reading form data
      * @param  Set  $set  Set utility for writing form data
-     * @return array  Map of field names to their updated configurations
+     * @return array Map of field names to their updated configurations
      */
     protected function evaluateSchemaArray(array $schema, Get $get, Set $set): array
     {
@@ -130,12 +129,14 @@ class ReactiveFieldController extends Controller
                         $updatedFields = array_merge($updatedFields, $tabFields);
                     }
                 }
+
                 continue;
             }
 
             if (in_array($componentType, ['section', 'grid']) && isset($componentData['schema'])) {
                 $nestedFields = $this->evaluateSchemaArray($componentData['schema'], $get, $set);
                 $updatedFields = array_merge($updatedFields, $nestedFields);
+
                 continue;
             }
 
@@ -160,7 +161,7 @@ class ReactiveFieldController extends Controller
      * @param  array  $components  Array of component instances
      * @param  Get  $get  Get utility for reading form data
      * @param  Set  $set  Set utility for writing form data
-     * @return array  Map of field names to their updated configurations
+     * @return array Map of field names to their updated configurations
      */
     protected function evaluateSchemaComponents(array $components, Get $get, Set $set): array
     {
@@ -233,13 +234,12 @@ class ReactiveFieldController extends Controller
      * @param  mixed  $value  The new value
      * @param  Get  $get  Get utility
      * @param  Set  $set  Set utility
-     * @return void
      */
     protected function executeAfterStateUpdated(array $schema, string $fieldName, mixed $value, Get $get, Set $set): void
     {
         foreach ($schema as $component) {
             // Skip if not an array
-            if (!is_array($component)) {
+            if (! is_array($component)) {
                 continue;
             }
 

@@ -620,7 +620,7 @@ class Select extends Field
                 $evaluatedOptions = ($this->options)($get, $set);
 
                 // If the evaluation returns null or non-array, return empty array
-                if (!is_array($evaluatedOptions)) {
+                if (! is_array($evaluatedOptions)) {
                     return [];
                 }
 
