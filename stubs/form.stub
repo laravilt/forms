@@ -1,0 +1,38 @@
+<?php
+
+namespace {{ namespace }};
+
+use Laravilt\Forms\Form;
+use Laravilt\Forms\Concerns\HasSchema;
+
+/**
+ * {{ class }} Form
+ *
+ * Custom form for data input and validation.
+ */
+class {{ class }} extends Form
+{
+    use HasSchema;
+
+    /**
+     * Configure the form.
+     */
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // Configure your form here
+        // $this->heading('Form Title');
+        // $this->submitLabel('Submit');
+    }
+
+    /**
+     * Define the form schema.
+     */
+    public function schema(array $components): static
+    {
+        $this->schema = $components;
+
+        return $this;
+    }
+}

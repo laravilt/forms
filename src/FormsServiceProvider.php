@@ -61,6 +61,7 @@ class FormsServiceProvider extends ServiceProvider
             // Register commands
             $this->commands([
                 Commands\MakeComponentCommand::class,
+                Commands\MakeFormCommand::class,
             ]);
         }
 

@@ -1,13 +1,19 @@
 {
     "name": "laravilt/forms",
-    "description": "Ready-to-use form components for Inertia.js, seamlessly managed by a PHP backend and Laravel, with advanced customization options. Fully compatible with FilamentPHP v4, this package supports all input types in the sleek reka-ui and shadcn-vue styles, providing a polished, modern solution for building dynamic, interactive forms.",
+    "description": "Complete form builder system with 30+ field types, validation, and Blade/Inertia.js integration. Build complex forms with text inputs, selects, date pickers, file uploads, rich editors, repeaters, and more with real-time reactivity.",
     "version": "1.0.0",
     "type": "library",
     "license": "MIT",
     "keywords": [
         "laravel",
         "laravilt",
-        "plugin"
+        "forms",
+        "form-builder",
+        "validation",
+        "fields",
+        "inertia",
+        "vue",
+        "blade"
     ],
     "authors": [
         {

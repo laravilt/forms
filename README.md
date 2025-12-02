@@ -1,6 +1,6 @@
 ![Forms](./arts/screenshot.jpg)
 
-# Forms Plugin for Laravilt
+# Laravilt Forms
 
 [![Latest Stable Version](https://poser.pugx.org/laravilt/forms/version.svg)](https://packagist.org/packages/laravilt/forms)
 [![License](https://poser.pugx.org/laravilt/forms/license.svg)](https://packagist.org/packages/laravilt/forms)
@@ -9,50 +9,85 @@
 [![PHP Code Styling](https://github.com/laravilt/forms/actions/workflows/fix-php-code-styling.yml/badge.svg)](https://github.com/laravilt/forms/actions/workflows/fix-php-code-styling.yml)
 [![Tests](https://github.com/laravilt/forms/actions/workflows/tests.yml/badge.svg)](https://github.com/laravilt/forms/actions/workflows/tests.yml)
 
-Ready-to-use form components for Inertia.js, seamlessly managed by a PHP backend and Laravel, with advanced customization options. Fully compatible with FilamentPHP v4, this package supports all input types in the sleek reka-ui and shadcn-vue styles, providing a polished, modern solution for building dynamic, interactive forms.
+Complete form builder system with 30+ field types, validation, and Blade/Inertia.js integration for Laravilt. Build complex forms with text inputs, selects, date pickers, file uploads, rich editors, repeaters, and more.
+
+## Features
+
+- 📝 **30+ Field Types** - TextInput, Select, DatePicker, FileUpload, RichEditor, Repeater, and more
+- ✅ **Validation** - Built-in Laravel validation integration
+- 🎨 **Blade Components** - Pre-built UI components with Reka UI styling
+- ⚡ **Inertia Integration** - Seamless Vue 3 form handling
+- 🔄 **Real-time Reactivity** - Dynamic field visibility, options, and validation
+- 📁 **File Management** - Advanced file upload with preview and validation
+- 📝 **Rich Content** - WYSIWYG editor, Markdown editor, code editor support
 
 ## Installation
-
-You can install the plugin via composer:
 
 ```bash
 composer require laravilt/forms
 ```
 
-The package will automatically register its service provider which handles all Laravel-specific functionality (views, migrations, config, etc.).
+## Quick Start
+
+```php
+use Laravilt\Forms\Components\TextInput;
+use Laravilt\Forms\Components\Select;
+
+$form->schema([
+    TextInput::make('name')
+        ->label('Full Name')
+        ->required(),
+
+    Select::make('role')
+        ->label('Role')
+        ->options([
+            'admin' => 'Administrator',
+            'editor' => 'Editor',
+        ])
+        ->required(),
+]);
+```
+
+## Generator Commands
+
+```bash
+# Generate a form class
+php artisan make:form UserForm
+
+# Generate a resource form with CRUD operations
+php artisan make:form UserForm --resource
+
+# Generate a custom field component
+php artisan make:component CustomField
+```
+
+## Documentation
+
+- **[Complete Documentation](docs/index.md)** - All field types, validation, and examples
+- **[MCP Server Guide](docs/mcp-server.md)** - AI agent integration
+
+## Field Types
+
+**Basic:** TextInput, Textarea, NumberField, Select, Checkbox, CheckboxList, Radio, Toggle, ToggleButtons, Hidden
+
+**Date & Time:** DatePicker, DateTimePicker, TimePicker, DateRangePicker
+
+**Advanced:** ColorPicker, IconPicker, FileUpload, RichEditor, MarkdownEditor, CodeEditor, TagsInput, KeyValue, Slider, RateInput, PinInput
+
+**Dynamic:** Repeater, Builder
 
 ## Configuration
 
-Publish the config file:
-
 ```bash
-php artisan vendor:publish --tag="forms-config"
-```
-
-## Assets
-
-Publish the plugin assets:
-
-```bash
-php artisan vendor:publish --tag="forms-assets"
+php artisan vendor:publish --tag="laravilt-forms-config"
+php artisan vendor:publish --tag="laravilt-forms-views"
+php artisan vendor:publish --tag="laravilt-forms-assets"
 ```
 
 ## Testing
 
 ```bash
 composer test
-```
-
-## Code Style
-
-```bash
-composer format
-```
-
-## Static Analysis
-
-```bash
-composer analyse
 ```
 
 ## License

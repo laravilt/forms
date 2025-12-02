@@ -1,0 +1,66 @@
+<?php
+
+namespace {{ namespace }};
+
+use Laravilt\Forms\Form;
+use Laravilt\Forms\Concerns\HasSchema;
+use Laravilt\Forms\Components\TextInput;
+use Laravilt\Forms\Components\Textarea;
+use Laravilt\Forms\Components\Select;
+
+/**
+ * {{ class }} Form
+ *
+ * Resource form with CRUD operations support.
+ */
+class {{ class }} extends Form
+{
+    use HasSchema;
+
+    /**
+     * Configure the form.
+     */
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->heading('{{ class }}');
+        $this->submitLabel('Save');
+    }
+
+    /**
+     * Define the form schema.
+     */
+    public function schema(array $components): static
+    {
+        $this->schema = $components;
+
+        return $this;
+    }
+
+    /**
+     * Get default form fields.
+     */
+    public static function getDefaultSchema(): array
+    {
+        return [
+            TextInput::make('name')
+                ->label('Name')
+                ->required()
+                ->maxLength(255),
+
+            Textarea::make('description')
+                ->label('Description')
+                ->rows(4),
+
+            Select::make('status')
+                ->label('Status')
+                ->options([
+                    'draft' => 'Draft',
+                    'published' => 'Published',
+                    'archived' => 'Archived',
+                ])
+                ->default('draft'),
+        ];
+    }
+}
