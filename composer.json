@@ -25,7 +25,8 @@
         "php": "^8.3|^8.4",
         "spatie/laravel-package-tools": "^1.14",
         "laravilt/support": "^1.0",
-        "laravilt/schemas": "^1.0"
+        "laravilt/schemas": "^1.0",
+        "laravilt/actions": "^1.0"
     },
     "require-dev": {
         "larastan/larastan": "^2.9||^3.0",
