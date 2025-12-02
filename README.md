@@ -1,4 +1,4 @@
-![Forms](./arts/screenshot.jpg)
+![forms](https://raw.githubusercontent.com/laravilt/forms/master/arts/screenshot.jpg)
 
 # Laravilt Forms
 
