@@ -16,12 +16,14 @@ export default defineConfig({
       fileName: (format) => `forms.${format}.js`,
     },
     rollupOptions: {
-      external: ['vue', '@inertiajs/vue3', 'radix-vue', /@laravilt\/.*/],
+      external: ['vue', '@inertiajs/vue3', 'radix-vue', 'reka-ui', 'lucide-vue-next', /@laravilt\/.*/],
       output: {
         globals: {
           vue: 'Vue',
           '@inertiajs/vue3': 'InertiaVue3',
           'radix-vue': 'RadixVue',
+          'reka-ui': 'RekaUI',
+          'lucide-vue-next': 'LucideVueNext',
         },
         assetFileNames: (assetInfo) => {
           if (assetInfo.name === 'style.css') return 'style.css'
