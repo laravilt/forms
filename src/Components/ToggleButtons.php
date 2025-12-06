@@ -53,7 +53,7 @@ class ToggleButtons extends Field
     /**
      * Set icons for each option (FilamentPHP v4 compatibility).
      *
-     * @param array|Closure $icons Map of option value => icon name
+     * @param  array|Closure  $icons  Map of option value => icon name
      */
     public function icons(array|Closure $icons): static
     {
@@ -65,7 +65,7 @@ class ToggleButtons extends Field
     /**
      * Set colors for each option (FilamentPHP v4 compatibility).
      *
-     * @param array|Closure $colors Map of option value => color
+     * @param  array|Closure  $colors  Map of option value => color
      */
     public function colors(array|Closure $colors): static
     {
