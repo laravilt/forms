@@ -58,7 +58,8 @@
             <div class="relative flex-1">
                 <div
                     v-if="prefixText"
-                    class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-sm text-muted-foreground"
+                    ref="prefixRef"
+                    class="pointer-events-none absolute inset-y-0 start-0 flex items-center ps-3 text-sm text-muted-foreground z-10"
                 >
                     {{ prefixText }}
                 </div>
@@ -79,11 +80,11 @@
                     :pattern="pattern"
                     v-bind="extraAttributes"
                     :class="[
-                        prefixText ? 'pl-8' : '',
                         hasError
                             ? 'border-destructive focus-visible:ring-destructive'
                             : '',
                     ]"
+                    :style="prefixText ? { paddingInlineStart: `${prefixPadding}px` } : {}"
                     :aria-invalid="hasError ? 'true' : 'false'"
                     :aria-describedby="hasError ? `${name}-error` : undefined"
                 />
@@ -112,12 +113,33 @@
 <script setup lang="ts">
 import { Input } from '@/components/ui/input';
 import type { ComputedRef } from 'vue';
-import { computed, inject, onMounted, ref, useSlots, watch } from 'vue';
+import { computed, inject, nextTick, onMounted, ref, useSlots, watch } from 'vue';
 import FieldWrapper from '../FieldWrapper.vue';
 import PhoneInput from '../PhoneInput.vue';
 import ActionButton from '@laravilt/actions/components/ActionButton.vue';
 
 const slots = useSlots();
+
+// Ref for measuring prefix width
+const prefixRef = ref<HTMLElement | null>(null);
+const prefixWidth = ref(0);
+
+// Calculate padding based on prefix width (prefix width + extra space for padding)
+const prefixPadding = computed(() => {
+    // Base padding (12px = pl-3) + prefix width + small gap (8px)
+    return prefixWidth.value > 0 ? prefixWidth.value + 8 : 32;
+});
+
+// Measure prefix width after mount and when prefix changes
+const measurePrefix = () => {
+    if (prefixRef.value) {
+        prefixWidth.value = prefixRef.value.offsetWidth;
+    }
+};
+
+onMounted(() => {
+    nextTick(measurePrefix);
+});
 
 const props = defineProps<{
     id?: string;
@@ -169,6 +191,11 @@ watch(() => props.value, (newValue) => {
     if (newValue !== localValue.value) {
         localValue.value = newValue || ''
     }
+})
+
+// Re-measure prefix when it changes
+watch(() => props.prefixText, () => {
+    nextTick(measurePrefix);
 })
 
 const handleInput = (value: string | null) => {

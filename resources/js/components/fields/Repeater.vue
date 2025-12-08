@@ -275,7 +275,7 @@ const getFieldValue = (itemIndex: number, fieldName: string) => {
       class="text-sm font-medium block text-foreground"
     >
       {{ label }}
-      <span v-if="required" class="text-destructive ml-0.5">*</span>
+      <span v-if="required" class="text-destructive ms-0.5">*</span>
     </label>
 
     <!-- Hidden input for form submission -->
@@ -370,7 +370,7 @@ const getFieldValue = (itemIndex: number, fieldName: string) => {
               class="text-sm font-medium block text-foreground"
             >
               {{ field.label }}
-              <span v-if="field.required" class="text-destructive ml-0.5">*</span>
+              <span v-if="field.required" class="text-destructive ms-0.5">*</span>
             </label>
 
             <component

@@ -1,5 +1,5 @@
 <template>
-    <div class="space-y-6">
+    <div class="rounded-lg border p-6 space-y-6">
         <!-- Section Header -->
         <header v-if="heading">
             <div

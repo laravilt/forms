@@ -1,6 +1,6 @@
 <template>
     <Tabs :default-value="String(activeTab || 0)" class="w-full">
-        <TabsList class="w-full justify-start">
+        <TabsList class="w-full justify-start rtl:flex-row-reverse">
             <TabsTrigger
                 v-for="(tab, index) in tabs"
                 :key="index"

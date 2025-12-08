@@ -998,7 +998,7 @@ const updateOption = async () => {
     class="text-sm font-medium block text-foreground"
   >
     {{ label }}
-    <span v-if="required" class="text-destructive ml-0.5">*</span>
+    <span v-if="required" class="text-destructive ms-0.5">*</span>
   </label>
 
   <!-- Hidden input for form submission -->
@@ -1301,7 +1301,7 @@ const updateOption = async () => {
         >
           <label v-if="field.label" :for="`create-${field.name}`" class="text-sm font-medium block">
             {{ field.label }}
-            <span v-if="field.required" class="text-destructive ml-0.5">*</span>
+            <span v-if="field.required" class="text-destructive ms-0.5">*</span>
           </label>
           <component
             :is="getComponent(field.component)"
@@ -1352,7 +1352,7 @@ const updateOption = async () => {
         >
           <label v-if="field.label" :for="`edit-${field.name}`" class="text-sm font-medium block">
             {{ field.label }}
-            <span v-if="field.required" class="text-destructive ml-0.5">*</span>
+            <span v-if="field.required" class="text-destructive ms-0.5">*</span>
           </label>
           <component
             :is="getComponent(field.component)"

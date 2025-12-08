@@ -62,7 +62,7 @@ const step = computed(() => {
       class="text-sm font-medium block text-foreground"
     >
       {{ label }}
-      <span v-if="required" class="text-destructive ml-0.5">*</span>
+      <span v-if="required" class="text-destructive ms-0.5">*</span>
     </label>
 
     <!-- Time Input -->

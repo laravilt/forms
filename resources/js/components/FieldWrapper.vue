@@ -14,7 +14,7 @@
             <!-- Before Label Slot -->
             <div
                 v-if="$slots.beforeLabel"
-                class="field-before-label mr-2 inline-block"
+                class="field-before-label me-2 inline-block"
             >
                 <slot name="beforeLabel" />
             </div>
@@ -23,7 +23,7 @@
                 <label
                     :for="fieldId"
                     :class="[
-                        'flex items-center gap-2 text-sm leading-none font-medium text-gray-900 select-none dark:text-white',
+                        'flex items-center gap-2 text-sm leading-none font-medium text-foreground select-none',
                         { 'sr-only': labelSrOnly },
                     ]"
                     data-slot="label"
@@ -32,14 +32,14 @@
 
                     <span
                         v-if="required"
-                        class="ml-0.5 text-red-500"
+                        class="ms-0.5 text-destructive"
                         aria-label="required"
                         >*</span
                     >
 
                     <span
                         v-if="hint"
-                        class="ml-2 text-xs font-normal text-gray-500"
+                        class="ms-2 text-xs font-normal text-muted-foreground"
                         >{{ hint }}</span
                     >
                 </label>
@@ -62,7 +62,7 @@
             <!-- After Label Slot -->
             <div
                 v-if="$slots.afterLabel"
-                class="field-after-label ml-2 inline-block"
+                class="field-after-label ms-2 inline-block"
             >
                 <slot name="afterLabel" />
             </div>
@@ -107,7 +107,7 @@
         <!-- Helper Text -->
         <p
             v-if="helperText && !hasError"
-            class="mt-1.5 text-xs text-gray-500 dark:text-gray-400"
+            class="mt-1.5 text-xs text-muted-foreground"
         >
             {{ helperText }}
         </p>
@@ -115,7 +115,7 @@
         <!-- Error Message -->
         <p
             v-if="hasError && errorMessage"
-            class="mt-1.5 text-xs text-red-600 dark:text-red-400"
+            class="mt-1.5 text-xs text-destructive"
             role="alert"
         >
             {{ errorMessage }}

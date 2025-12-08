@@ -53,8 +53,24 @@ const emit = defineEmits<{
 const parseDateString = (dateStr: string | null | undefined): DateValue | null => {
   if (!dateStr) return null
   try {
-    return parseDate(dateStr)
+    // Handle various date formats from database
+    // - ISO format with time: 2024-01-15T00:00:00.000000Z
+    // - MySQL datetime: 2024-01-15 00:00:00
+    // - Simple date: 2024-01-15
+    let dateOnly = dateStr
+
+    // Extract just the date part (YYYY-MM-DD)
+    if (dateStr.includes('T')) {
+      // ISO format: 2024-01-15T00:00:00.000000Z
+      dateOnly = dateStr.split('T')[0]
+    } else if (dateStr.includes(' ')) {
+      // MySQL datetime: 2024-01-15 00:00:00
+      dateOnly = dateStr.split(' ')[0]
+    }
+
+    return parseDate(dateOnly)
   } catch (e) {
+    console.warn('DatePicker: Failed to parse date:', dateStr, e)
     return null
   }
 }
@@ -145,7 +161,7 @@ const updateDate = (date: DateValue | null | undefined) => {
       class="text-sm font-medium block text-foreground"
     >
       {{ label }}
-      <span v-if="required" class="text-destructive ml-0.5">*</span>
+      <span v-if="required" class="text-destructive ms-0.5">*</span>
     </label>
 
     <!-- Hidden input for form submission -->
