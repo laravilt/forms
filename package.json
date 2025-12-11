@@ -1,6 +1,6 @@
 {
     "name": "@laravilt/forms",
-    "version": "1.0.5",
+    "version": "1.0.0",
     "description": "Complete form builder with 30+ field types, validation, and dynamic fields. Build powerful forms with text inputs, selects, file uploads, rich editors, repeaters, and schema-based layouts.",
     "author": "Fady Mondy <info@3x1.io>",
     "license": "MIT",
