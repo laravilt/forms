@@ -500,18 +500,13 @@ const fetchOptions = async (reset: boolean = false, searchQuery?: string) => {
       }
 
       url = `/${panelPath}/${props.closureOptionsUrl}?${params.toString()}`
-      console.log('[Select] Fetching URL:', url)
 
       const response = await fetch(url)
-      console.log('[Select] Response status:', response.status, response.ok)
       if (!response.ok) {
-        const errorText = await response.text()
-        console.error('[Select] Fetch failed:', errorText)
         throw new Error('Failed to fetch closure options')
       }
 
       const data = await response.json()
-      console.log('[Select] Response data:', data)
       responseData = {
         options: data.options || [],
         has_more: data.hasMore || false,
@@ -606,37 +601,20 @@ watch(open, (isOpen) => {
     page.value = 1
     hasMore.value = false
 
-    // Debug logging
-    console.log('[Select] Dropdown opened for field:', props.name, {
-      closureOptionsUrl: props.closureOptionsUrl,
-      fieldName: props.fieldName,
-      resourceSlug: props.resourceSlug,
-      relationshipSearchUrl: props.relationshipSearchUrl,
-      hasStaticOptions: hasStaticOptions.value,
-      optionsCount: options.value.length,
-    })
-
     // Fetch options when opening if:
     // 1. We have a relationship search URL (searchable relationship select)
     // 2. We have a closure options URL (closure-based searchable select)
     // 3. OR we don't have static options AND not using dependent options
     if (props.relationshipSearchUrl) {
       // Relationship select with search - fetch fresh options when opening
-      console.log('[Select] Fetching relationship options')
       fetchOptions(true, '')
     } else if (props.closureOptionsUrl && props.fieldName) {
       // Closure-based select with searchable options - fetch fresh options when opening
-      console.log('[Select] Fetching closure options')
       fetchOptions(true, '')
     } else if (!hasStaticOptions.value && !props.optionsUrl && !props.hasDynamicOptions) {
       // Legacy: Fetch fresh data when opening
-      console.log('[Select] Fetching legacy options')
       fetchOptions(true, '')
-    } else {
-      console.log('[Select] Not fetching options - using static options')
     }
-  } else {
-    // Keep options when closing - we need them to display the selected value!
   }
 })
 

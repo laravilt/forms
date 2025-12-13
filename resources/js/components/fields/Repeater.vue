@@ -172,7 +172,6 @@ const generateItemId = () => `item-${Date.now()}-${Math.random().toString(36).su
 watch(() => props.value ?? props.modelValue, (newValue, oldValue) => {
   // Skip if we're in the middle of an internal update
   if (isUpdating.value) {
-    console.log('[Repeater] Skipping watch - internal update in progress')
     return
   }
 
@@ -184,13 +183,6 @@ watch(() => props.value ?? props.modelValue, (newValue, oldValue) => {
   const isInitialLoad = oldValue === undefined
 
   if (isInitialLoad || lengthChanged) {
-    console.log('[Repeater] Watch triggered - updating items', {
-      isInitialLoad,
-      lengthChanged,
-      oldLength: internalItems.value.length,
-      newLength: newItems.length
-    })
-
     internalItems.value = newItems
 
     // Generate IDs for new items
@@ -431,26 +423,11 @@ const isOpen = (index: number) => {
   return !props.collapsible || openItems.value.has(index)
 }
 
-// Debug: Log schema fields on mount
-onMounted(() => {
-  console.log('[Repeater] Schema fields:', props.schema?.map(f => ({
-    name: f.name,
-    component: f.component,
-    isLive: f.isLive,
-    isLazy: f.isLazy,
-    closureOptionsUrl: f.closureOptionsUrl,
-    fieldName: f.fieldName,
-    resourceSlug: f.resourceSlug,
-  })))
-  console.log('[Repeater] Parent form controller:', parentFormController)
-  console.log('[Repeater] Repeater name:', props.name)
-})
 
 // Trigger reactive field update for live/lazy fields inside Repeater
 const triggerReactiveFieldUpdate = async (itemIndex: number, fieldName: string, field: FieldSchema) => {
   // Skip if no form controller is configured
   if (!parentFormController) {
-    console.warn('[Repeater] No formController configured, skipping reactive field update')
     return
   }
 
@@ -459,7 +436,6 @@ const triggerReactiveFieldUpdate = async (itemIndex: number, fieldName: string, 
 
   // Skip if we already have a pending update for this field
   if (pendingReactiveUpdate.value === updateKey) {
-    console.log('[Repeater] Skipping duplicate reactive update for:', updateKey)
     return
   }
 
@@ -475,13 +451,6 @@ const triggerReactiveFieldUpdate = async (itemIndex: number, fieldName: string, 
 
     // The changed field path is: repeaterName.itemIndex.fieldName
     const changedFieldPath = `${props.name || 'items'}.${itemIndex}.${fieldName}`
-
-    console.log('[Repeater] Triggering reactive update:', {
-      controller: parentFormController,
-      method: parentFormMethod,
-      changedField: changedFieldPath,
-      data: fullFormData,
-    })
 
     const payload = {
       controller: parentFormController,
@@ -507,15 +476,10 @@ const triggerReactiveFieldUpdate = async (itemIndex: number, fieldName: string, 
     }
 
     const result = await response.json()
-    console.log('[Repeater] Reactive update result:', result)
-    console.log('[Repeater] Repeater name for data lookup:', props.name || 'items')
-    console.log('[Repeater] Result data items:', result.data?.[props.name || 'items'])
-    console.log('[Repeater] Item at index', itemIndex, ':', result.data?.[props.name || 'items']?.[itemIndex])
 
     // If backend returned updated data, apply it to the repeater item
     if (result.data) {
       const repeaterData = result.data[props.name || 'items']
-      console.log('[Repeater] Found repeater data:', repeaterData)
 
       if (repeaterData && Array.isArray(repeaterData) && repeaterData[itemIndex]) {
         // Update only the specific item that was affected
@@ -524,9 +488,6 @@ const triggerReactiveFieldUpdate = async (itemIndex: number, fieldName: string, 
           ...newItems[itemIndex],
           ...repeaterData[itemIndex],
         }
-        console.log('[Repeater] Updated item:', updatedItem)
-        console.log('[Repeater] Old total_price:', newItems[itemIndex]?.total_price)
-        console.log('[Repeater] New total_price:', updatedItem.total_price)
 
         // Update the item in place
         newItems[itemIndex] = updatedItem
@@ -540,15 +501,6 @@ const triggerReactiveFieldUpdate = async (itemIndex: number, fieldName: string, 
 
         // 3. Trigger ref to ensure Vue picks up the change
         triggerRef(internalItems)
-
-        console.log('[Repeater] Reactivity triggered, version:', itemsVersion.value)
-
-        // NOTE: We intentionally do NOT emit here
-        // Emitting causes the parent to re-render and recreate this component
-        // The updated data is tracked in internalItems and will be included on form submit
-        // The hidden input field ensures the data is submitted with the form
-      } else {
-        console.log('[Repeater] Could not find repeater data at index', itemIndex)
       }
     }
 
@@ -565,13 +517,6 @@ const triggerReactiveFieldUpdate = async (itemIndex: number, fieldName: string, 
 
 // Update field value within an item
 const updateFieldValue = async (itemIndex: number, fieldName: string, value: any, field?: FieldSchema) => {
-  console.log('[Repeater] updateFieldValue called:', {
-    itemIndex,
-    fieldName,
-    value,
-    field: field ? { name: field.name, isLive: field.isLive, isLazy: field.isLazy } : undefined,
-  })
-
   // Set flag to prevent watch from re-initializing during our update
   isUpdating.value = true
 
@@ -585,13 +530,11 @@ const updateFieldValue = async (itemIndex: number, fieldName: string, value: any
 
     // Check if this field is reactive (live/lazy) and trigger update
     if (field && (field.isLive || field.isLazy)) {
-      console.log('[Repeater] Field is live/lazy, triggering reactive update')
       // For reactive fields, we trigger the update but DON'T emit to parent
       // This prevents parent re-render and component remount
       // The data is tracked internally and will be submitted via hidden input
       await triggerReactiveFieldUpdate(itemIndex, fieldName, field)
     } else {
-      console.log('[Repeater] Field is NOT live/lazy, emitting update')
       // For non-reactive fields, emit normally so parent stays in sync
       emit('update:modelValue', newValue)
       emit('update:value', newValue)
@@ -605,10 +548,7 @@ const updateFieldValue = async (itemIndex: number, fieldName: string, value: any
 }
 
 // Get field value from item
-// This function depends on itemsVersion to ensure Vue re-evaluates it
 const getFieldValue = (itemIndex: number, fieldName: string) => {
-  // Access version to create dependency (unused but triggers re-evaluation)
-  const _ = itemsVersion.value
   return internalItems.value[itemIndex]?.[fieldName]
 }
 
