@@ -1,7 +1,7 @@
 {
     "name": "laravilt/forms",
     "description": "Complete form builder system with 30+ field types, validation, and Blade/Inertia.js integration. Build complex forms with text inputs, selects, date pickers, file uploads, rich editors, repeaters, and more with real-time reactivity.",
-    "version": "1.0.6",
+    "version": "1.0.7",
     "type": "library",
     "license": "MIT",
     "keywords": [
