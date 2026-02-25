@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import * as LucideIcons from 'lucide-vue-next'
 import { Plus, X, GripVertical } from 'lucide-vue-next'
 import { ref, computed } from 'vue'
-import { useLocalization } from '@/composables/useLocalization'
+import { useLocalization } from '@laravilt/support/composables'
 
 // Initialize localization
 const { trans } = useLocalization()
