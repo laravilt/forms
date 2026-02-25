@@ -28,7 +28,7 @@ import IconPicker from './IconPicker.vue'
 import MarkdownEditor from './MarkdownEditor.vue'
 import PinInput from './PinInput.vue'
 import RateInput from './RateInput.vue'
-import { useLocalization } from '@/composables/useLocalization'
+import { useLocalization } from '@laravilt/support/composables'
 
 // Initialize localization
 const { trans } = useLocalization()
