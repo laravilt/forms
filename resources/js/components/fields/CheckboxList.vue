@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import { computed, ref, reactive, watch } from 'vue'
 import { Input } from '@/components/ui/input'
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import * as LucideIcons from 'lucide-vue-next'
-import { useLocalization } from '@/composables/useLocalization'
+import { useLocalization } from '@laravilt/support/composables'
 
 // Initialize localization
 const { trans } = useLocalization()

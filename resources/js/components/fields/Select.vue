@@ -27,7 +27,7 @@ import TextInput from './TextInput.vue'
 import Textarea from './Textarea.vue'
 import Toggle from './Toggle.vue'
 import { useReactiveField } from '../../composables/useReactiveField'
-import { useLocalization } from '@/composables/useLocalization'
+import { useLocalization } from '@laravilt/support/composables'
 
 // Initialize localization
 const { trans } = useLocalization()
