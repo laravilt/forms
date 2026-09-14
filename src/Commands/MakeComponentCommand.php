@@ -14,6 +14,7 @@ class MakeComponentCommand extends GeneratorCommand
      */
     protected $signature = 'make:form-component {name : The name of the component}
                             {--vue : Also generate Vue component}
+                            {--react : Also generate React component}
                             {--force : Overwrite existing file}';
 
     /**
@@ -41,6 +42,10 @@ class MakeComponentCommand extends GeneratorCommand
 
         if ($this->option('vue')) {
             $this->createVueComponent();
+        }
+
+        if ($this->option('react')) {
+            $this->createReactComponent();
         }
 
         // Show usage example
@@ -130,5 +135,35 @@ class MakeComponentCommand extends GeneratorCommand
         file_put_contents($path, $stub);
 
         $this->components->info("Vue component created at {$path}");
+    }
+
+    /**
+     * Create the React component file.
+     */
+    protected function createReactComponent(): void
+    {
+        $name = class_basename($this->argument('name'));
+        $kebabName = Str::kebab($name);
+
+        $path = resource_path("js/components/forms/{$kebabName}.tsx");
+
+        if (file_exists($path) && ! $this->option('force')) {
+            $this->components->error("React component already exists at {$path}");
+
+            return;
+        }
+
+        $directory = dirname($path);
+        if (! is_dir($directory)) {
+            mkdir($directory, 0755, true);
+        }
+
+        $stub = file_get_contents(__DIR__.'/../../stubs/component.tsx.stub');
+        $stub = str_replace('{{ componentName }}', $name, $stub);
+        $stub = str_replace('{{ componentKebab }}', $kebabName, $stub);
+
+        file_put_contents($path, $stub);
+
+        $this->components->info("React component created at {$path}");
     }
 }

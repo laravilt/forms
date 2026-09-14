@@ -1,0 +1,46 @@
+interface Props {
+    name?: string;
+    value?: any;
+    modelValue?: any;
+    placeholder?: string;
+    disabled?: boolean;
+    readonly?: boolean;
+    onUpdateModelValue?: (value: any) => void;
+    onUpdateValue?: (value: any) => void;
+}
+
+export default function {{ componentName }}({
+    name,
+    value = null,
+    modelValue = null,
+    placeholder = '',
+    disabled,
+    readonly,
+    onUpdateModelValue,
+    onUpdateValue,
+}: Props) {
+    const currentValue = modelValue ?? value;
+
+    const setCurrentValue = (next: any) => {
+        onUpdateModelValue?.(next);
+        onUpdateValue?.(next);
+    };
+
+    return (
+        <div className="relative">
+            {/* Implement your {{ componentName }} component here */}
+            <input
+                value={currentValue ?? ''}
+                onChange={(event) => setCurrentValue(event.target.value)}
+                type="text"
+                placeholder={placeholder}
+                disabled={disabled}
+                readOnly={readonly}
+                className="w-full"
+            />
+
+            {/* Hidden input for form submission */}
+            {name && <input type="hidden" name={name} value={currentValue || ''} />}
+        </div>
+    );
+}
