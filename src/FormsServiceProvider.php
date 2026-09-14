@@ -3,6 +3,25 @@
 namespace Laravilt\Forms;
 
 use Illuminate\Support\ServiceProvider;
+use Laravilt\Forms\Components\Checkbox;
+use Laravilt\Forms\Components\ColorPicker;
+use Laravilt\Forms\Components\DatePicker;
+use Laravilt\Forms\Components\DateTimePicker;
+use Laravilt\Forms\Components\FileUpload;
+use Laravilt\Forms\Components\Hidden;
+use Laravilt\Forms\Components\KeyValue;
+use Laravilt\Forms\Components\MarkdownEditor;
+use Laravilt\Forms\Components\Radio;
+use Laravilt\Forms\Components\Repeater;
+use Laravilt\Forms\Components\RichEditor;
+use Laravilt\Forms\Components\Select;
+use Laravilt\Forms\Components\TagsInput;
+use Laravilt\Forms\Components\Textarea;
+use Laravilt\Forms\Components\TextInput;
+use Laravilt\Forms\Components\TimePicker;
+use Laravilt\Forms\Components\Toggle;
+use Laravilt\Forms\View\Components\FieldWrapper;
+use Laravilt\Forms\View\Components\Form;
 
 class FormsServiceProvider extends ServiceProvider
 {
@@ -76,29 +95,29 @@ class FormsServiceProvider extends ServiceProvider
     {
         $this->loadViewComponentsAs('laravilt', [
             // Layout Components
-            \Laravilt\Forms\View\Components\Form::class,
-            \Laravilt\Forms\View\Components\FieldWrapper::class,
+            Form::class,
+            FieldWrapper::class,
 
             // Basic Fields
-            \Laravilt\Forms\Components\TextInput::class,
-            \Laravilt\Forms\Components\Textarea::class,
-            \Laravilt\Forms\Components\Select::class,
-            \Laravilt\Forms\Components\Checkbox::class,
-            \Laravilt\Forms\Components\Radio::class,
-            \Laravilt\Forms\Components\Toggle::class,
-            \Laravilt\Forms\Components\DatePicker::class,
-            \Laravilt\Forms\Components\TimePicker::class,
-            \Laravilt\Forms\Components\DateTimePicker::class,
-            \Laravilt\Forms\Components\FileUpload::class,
-            \Laravilt\Forms\Components\Hidden::class,
+            TextInput::class,
+            Textarea::class,
+            Select::class,
+            Checkbox::class,
+            Radio::class,
+            Toggle::class,
+            DatePicker::class,
+            TimePicker::class,
+            DateTimePicker::class,
+            FileUpload::class,
+            Hidden::class,
 
             // Advanced Fields
-            \Laravilt\Forms\Components\ColorPicker::class,
-            \Laravilt\Forms\Components\TagsInput::class,
-            \Laravilt\Forms\Components\KeyValue::class,
-            \Laravilt\Forms\Components\Repeater::class,
-            \Laravilt\Forms\Components\RichEditor::class,
-            \Laravilt\Forms\Components\MarkdownEditor::class,
+            ColorPicker::class,
+            TagsInput::class,
+            KeyValue::class,
+            Repeater::class,
+            RichEditor::class,
+            MarkdownEditor::class,
         ]);
     }
 

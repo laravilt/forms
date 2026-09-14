@@ -2,6 +2,9 @@
 
 namespace Laravilt\Forms\Tests;
 
+use Laravilt\Forms\FormsServiceProvider;
+use Laravilt\Schemas\SchemasServiceProvider;
+use Laravilt\Support\SupportServiceProvider;
 use Orchestra\Testbench\TestCase as Orchestra;
 
 class TestCase extends Orchestra
@@ -16,9 +19,9 @@ class TestCase extends Orchestra
     protected function getPackageProviders($app): array
     {
         return [
-            \Laravilt\Support\SupportServiceProvider::class,
-            \Laravilt\Schemas\SchemasServiceProvider::class,
-            \Laravilt\Forms\FormsServiceProvider::class,
+            SupportServiceProvider::class,
+            SchemasServiceProvider::class,
+            FormsServiceProvider::class,
         ];
     }
 

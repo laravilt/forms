@@ -4,6 +4,7 @@ namespace Laravilt\Forms\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\MessageBag;
 use Laravilt\Forms\Components\Builder;
 use Laravilt\Forms\Components\Builder\Block;
 use Laravilt\Forms\Components\Checkbox;
@@ -87,7 +88,7 @@ class FormsDemoController extends Controller
 
         return view('laravilt-forms::demo.blade', [
             'formSchema' => $formSchema,
-        ])->with('errors', session()->get('errors', new \Illuminate\Support\MessageBag));
+        ])->with('errors', session()->get('errors', new MessageBag));
     }
 
     /**
@@ -114,7 +115,7 @@ class FormsDemoController extends Controller
                 'formSchema' => $formSchema,
             ])->with('success', 'Form submitted successfully!')
                 ->with('data', $validated)
-                ->with('errors', new \Illuminate\Support\MessageBag);
+                ->with('errors', new MessageBag);
         }
 
         // Regular form submission fallback

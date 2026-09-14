@@ -3,6 +3,8 @@
 namespace Laravilt\Forms\Components;
 
 use Closure;
+use Illuminate\Database\Eloquent\Relations\Relation;
+use Laravilt\Panel\Facades\Panel;
 
 class CheckboxList extends Field
 {
@@ -200,7 +202,7 @@ class CheckboxList extends Field
         $resources = [];
 
         try {
-            $panel = \Laravilt\Panel\Facades\Panel::getCurrent();
+            $panel = Panel::getCurrent();
             if ($panel) {
                 foreach ($panel->getResources() as $resourceClass) {
                     // Get the resource slug (e.g., 'users' -> 'user')
@@ -505,7 +507,7 @@ class CheckboxList extends Field
 
             $relationship = $modelInstance->{$this->relationshipName}();
 
-            if ($relationship instanceof \Illuminate\Database\Eloquent\Relations\Relation) {
+            if ($relationship instanceof Relation) {
                 return get_class($relationship->getRelated());
             }
         } catch (\Throwable $e) {

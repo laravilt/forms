@@ -2,8 +2,11 @@
 
 namespace Laravilt\Forms\Http\Controllers;
 
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Laravilt\Forms\Components\Select;
+use Laravilt\Schemas\Components\Tabs;
 use Laravilt\Support\Utilities\Get;
 use Laravilt\Support\Utilities\Set;
 
@@ -26,7 +29,7 @@ class ReactiveFieldController extends Controller
      *
      * Returns updated field configurations (options, etc.)
      *
-     * @return \Illuminate\Http\JsonResponse
+     * @return JsonResponse
      */
     public function update(Request $request)
     {
@@ -192,7 +195,7 @@ class ReactiveFieldController extends Controller
             }
 
             // Check if it's a Select component with dynamic options
-            if ($component instanceof \Laravilt\Forms\Components\Select) {
+            if ($component instanceof Select) {
                 $fieldName = $component->getName();
 
                 // Evaluate the options closure if it exists
@@ -224,7 +227,7 @@ class ReactiveFieldController extends Controller
             }
 
             // Handle Tabs specifically
-            if ($component instanceof \Laravilt\Schemas\Components\Tabs) {
+            if ($component instanceof Tabs) {
                 $tabs = $component->getTabs();
                 foreach ($tabs as $tab) {
                     if (method_exists($tab, 'getSchema')) {

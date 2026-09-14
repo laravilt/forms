@@ -3,6 +3,8 @@
 namespace Laravilt\Forms\Components;
 
 use Closure;
+use Illuminate\Support\Str;
+use Laravilt\Actions\Action;
 use Laravilt\Forms\Concerns\CanBeReactive;
 use Laravilt\Forms\Concerns\HasDefaultValue;
 use Laravilt\Forms\Concerns\HasValidation;
@@ -300,13 +302,13 @@ abstract class Field extends Component
     {
         $className = class_basename($this);
 
-        return \Illuminate\Support\Str::kebab($className);
+        return Str::kebab($className);
     }
 
     /**
      * Add a hint action.
      */
-    public function hintAction(\Laravilt\Actions\Action $action): static
+    public function hintAction(Action $action): static
     {
         $this->hintActions[] = $action;
 
@@ -334,7 +336,7 @@ abstract class Field extends Component
     /**
      * Add a prefix action.
      */
-    public function prefixAction(\Laravilt\Actions\Action $action): static
+    public function prefixAction(Action $action): static
     {
         $this->prefixActions[] = $action;
 
@@ -362,7 +364,7 @@ abstract class Field extends Component
     /**
      * Add a suffix action.
      */
-    public function suffixAction(\Laravilt\Actions\Action $action): static
+    public function suffixAction(Action $action): static
     {
         $this->suffixActions[] = $action;
 

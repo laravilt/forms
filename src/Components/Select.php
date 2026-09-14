@@ -3,6 +3,10 @@
 namespace Laravilt\Forms\Components;
 
 use Closure;
+use Illuminate\Support\Collection;
+use Laravilt\Panel\Facades\Panel;
+use Laravilt\Support\Utilities\Get;
+use Laravilt\Support\Utilities\Set;
 
 class Select extends Field
 {
@@ -658,8 +662,8 @@ class Select extends Field
                     : request()->input('formData', []);
 
                 // Create Get and Set utilities
-                $get = new \Laravilt\Support\Utilities\Get($formData);
-                $set = new \Laravilt\Support\Utilities\Set($formData);
+                $get = new Get($formData);
+                $set = new Set($formData);
 
                 // Evaluate the closure with Get and Set
                 $evaluatedOptions = ($this->options)($get, $set);
@@ -676,7 +680,7 @@ class Select extends Field
             $result = ($this->options)();
 
             // Convert Collection to array if needed
-            if ($result instanceof \Illuminate\Support\Collection) {
+            if ($result instanceof Collection) {
                 $result = $result->all();
             }
 
@@ -713,7 +717,7 @@ class Select extends Field
         }
 
         // Convert Collection to array if needed
-        if ($this->options instanceof \Illuminate\Support\Collection) {
+        if ($this->options instanceof Collection) {
             return $this->options->all();
         }
 
@@ -907,7 +911,7 @@ class Select extends Field
     {
         try {
             // Get current panel
-            $panel = \Laravilt\Panel\Facades\Panel::getCurrent();
+            $panel = Panel::getCurrent();
             if (! $panel) {
                 return null;
             }
@@ -955,7 +959,7 @@ class Select extends Field
     public function evaluateOptions($get, $set): array
     {
         // If options is a Closure, evaluate it with $get and $set
-        if ($this->options instanceof \Closure) {
+        if ($this->options instanceof Closure) {
             return ($this->options)($get, $set);
         }
 
@@ -968,7 +972,7 @@ class Select extends Field
      *
      * Parses the closure source code to find all $get('field_name') calls.
      */
-    protected function extractClosureDependencies(\Closure $closure): array
+    protected function extractClosureDependencies(Closure $closure): array
     {
         try {
             $reflection = new \ReflectionFunction($closure);
@@ -1060,7 +1064,7 @@ class Select extends Field
         }, $this->editOptionForm);
 
         // Detect closure-based options and extract dependencies
-        $hasDynamicOptions = $this->options instanceof \Closure;
+        $hasDynamicOptions = $this->options instanceof Closure;
         $closureDependencies = [];
 
         if ($hasDynamicOptions && empty($this->dependsOn)) {
@@ -1164,7 +1168,7 @@ class Select extends Field
     public function toLaraviltProps(): array
     {
         //  Detect closure-based options and extract dependencies
-        $hasDynamicOptions = $this->options instanceof \Closure;
+        $hasDynamicOptions = $this->options instanceof Closure;
         $closureDependencies = [];
 
         if ($hasDynamicOptions && empty($this->dependsOn)) {
@@ -1220,7 +1224,7 @@ class Select extends Field
 
             // For closure-based options, always provide the search URL
             // This allows fetching selected option labels and pagination
-            if ($this->options instanceof \Closure) {
+            if ($this->options instanceof Closure) {
                 $props['closureOptionsUrl'] = '_select/search';
                 $props['fieldName'] = $this->name;
 
