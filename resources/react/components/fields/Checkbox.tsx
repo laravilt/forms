@@ -66,7 +66,15 @@ export default function Checkbox({
 }: CheckboxProps) {
     // Nested renderers (Builder, Repeater) only pass modelValue
     const checkboxValue = value ?? modelValue;
-    const setCheckboxValue = (next: any) => onUpdateModelValue?.(next);
+
+    // Emit the values configured with checkedValue()/uncheckedValue() on the PHP side (default true/false)
+    const onValue = checkedValue ?? true;
+    const offValue = uncheckedValue ?? false;
+    const checkedState: boolean | 'indeterminate' =
+        onValue === true
+            ? toCheckedState(checkboxValue)
+            : checkboxValue !== null && checkboxValue !== undefined && (checkboxValue === onValue || String(checkboxValue) === String(onValue));
+    const setCheckboxValue = (checked: boolean | 'indeterminate') => onUpdateModelValue?.(checked === true ? onValue : offValue);
 
     // Errors from parent (Vue: inject('errors'))
     const errorMessage = useFieldError(name) || null;
@@ -96,14 +104,14 @@ export default function Checkbox({
                 /* Single Checkbox (when no options provided) */
                 <div className="flex items-center space-x-2">
                     {/* Hidden input for unchecked value (false) */}
-                    <input type="hidden" name={name} value={String(uncheckedValue ?? false)} />
+                    <input type="hidden" name={name} value={String(offValue)} />
 
                     <UiCheckbox
                         id={name}
                         name={name}
-                        checked={toCheckedState(checkboxValue)}
+                        checked={checkedState}
                         onCheckedChange={(checked) => setCheckboxValue(checked)}
-                        value={String(checkedValue ?? true)}
+                        value={String(onValue)}
                         disabled={disabled}
                         aria-invalid={hasError ? 'true' : 'false'}
                     />

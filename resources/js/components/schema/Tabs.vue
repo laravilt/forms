@@ -50,9 +50,11 @@
                 </div>
 
                 <!-- Actual content -->
+                <!-- Rendered as a div: tabs already live inside the parent <form> -->
                 <Form
                     v-else-if="tab.schema"
                     key="content"
+                    as="div"
                     :schema="tab.schema"
                     :model-value="modelValue"
                     @update:model-value="(value) => emit('update:modelValue', value)"

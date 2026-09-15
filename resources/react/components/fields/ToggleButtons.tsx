@@ -45,7 +45,7 @@ const getIconColorClass = (color?: string) => {
         destructive: 'text-destructive',
     };
 
-    return colorMap[color] || `text-${color}`;
+    return colorMap[color] || 'text-muted-foreground';
 };
 
 export default function ToggleButtons({
@@ -110,13 +110,15 @@ export default function ToggleButtons({
     return (
         <div className="w-full space-y-2">
             {/* Hidden input for form submission */}
-            {name && (
-                <input
-                    type="hidden"
-                    name={name}
-                    value={multiple ? (Array.isArray(currentValue) ? currentValue.join(',') : '') : String(currentValue ?? '')}
-                />
-            )}
+            {/* Multiple mode submits an array (`name[]`), matching the array the component emits */}
+            {name &&
+                (multiple ? (
+                    (Array.isArray(currentValue) ? currentValue : []).map((item) => (
+                        <input key={String(item)} type="hidden" name={`${name}[]`} value={String(item)} />
+                    ))
+                ) : (
+                    <input type="hidden" name={name} value={String(currentValue ?? '')} />
+                ))}
 
             {/* Header icons */}
             {(PrefixIcon || SuffixIcon) && (

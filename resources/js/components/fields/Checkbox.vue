@@ -32,14 +32,14 @@
             <input
                 type="hidden"
                 :name="name"
-                :value="uncheckedValue ?? false"
+                :value="offValue"
             />
 
             <Checkbox
                 :id="name"
                 :name="name"
                 v-model="checkboxValue"
-                :value="checkedValue ?? true"
+                :value="onValue"
                 :disabled="disabled"
                 :aria-invalid="hasError ? 'true' : 'false'"
             />
@@ -99,6 +99,7 @@ const props = defineProps<{
     columnSpan?: number | string;
     defaultValue?: any;
     value?: any;
+    modelValue?: any;
     checkedValue?: any;
     uncheckedValue?: any;
     hintActions?: any[];
@@ -111,9 +112,25 @@ const emit = defineEmits<{
     'update:modelValue': [value: any]
 }>();
 
+// Emit the values configured with checkedValue()/uncheckedValue() on the PHP side (default true/false)
+const onValue = computed(() => props.checkedValue ?? true);
+const offValue = computed(() => props.uncheckedValue ?? false);
+
+// The checkbox control only understands boolean | 'indeterminate'
+const toCheckedState = (value: any): boolean | 'indeterminate' => {
+    if (value === 'indeterminate') return 'indeterminate';
+    if (value === '0' || value === 'false') return false;
+    return !!value;
+};
+
 const checkboxValue = computed({
-    get: () => props.value,
-    set: (value) => emit('update:modelValue', value)
+    get: (): boolean | 'indeterminate' => {
+        // Nested renderers (Builder, Repeater) only pass modelValue
+        const current = props.value ?? props.modelValue;
+        if (onValue.value === true) return toCheckedState(current);
+        return current !== null && current !== undefined && (current === onValue.value || String(current) === String(onValue.value));
+    },
+    set: (checked: boolean | 'indeterminate') => emit('update:modelValue', checked === true ? onValue.value : offValue.value)
 });
 
 // Inject errors from parent
