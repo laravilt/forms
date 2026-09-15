@@ -755,7 +755,7 @@ const getIconColorClass = (color?: string): string => {
         destructive: 'text-destructive',
     };
 
-    return colorMap[color] || `text-${color}`;
+    return colorMap[color] || 'text-muted-foreground';
 };
 
 const toPathArray = (value: string | string[] | null | undefined): string[] => {

@@ -226,7 +226,7 @@ export default function Repeater({
     const parentGetFormData = parentContext.getFormData;
 
     // Compute grid column classes based on columns prop
-    const gridColumnsClass = !columns ? '' : GRID_COLUMNS[columns] || `grid-cols-${columns}`;
+    const gridColumnsClass = !columns ? '' : GRID_COLUMNS[columns] || '';
 
     // Get column span class for a field
     const getColumnSpanClass = (field: FieldSchema): string => {
@@ -235,7 +235,7 @@ export default function Repeater({
         if (colSpan === 'full' || field.columnSpanFull) {
             return `col-span-full`;
         }
-        return COLUMN_SPANS[colSpan] || `col-span-${colSpan}`;
+        return COLUMN_SPANS[colSpan] || '';
     };
 
     // Translated labels
