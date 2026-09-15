@@ -1,6 +1,6 @@
 import { cn } from '@/lib/utils';
 import { resolveIcon } from '@laravilt/support/lib/icons';
-import { useEffect, useRef, useState, type ChangeEvent } from 'react';
+import { useEffect, useId, useRef, useState, type ChangeEvent } from 'react';
 
 interface Option {
     value: string | number;
@@ -47,7 +47,7 @@ const getIconColorClass = (color?: string) => {
         destructive: 'text-destructive',
     };
 
-    return colorMap[color] || `text-${color}`;
+    return colorMap[color] || 'text-muted-foreground';
 };
 
 const selectClass =
@@ -87,6 +87,10 @@ export default function SelectSimple({
     // Use internal value for display and form submission
     const currentValue = internalValue;
 
+    // Labels need a control id even when the field is used without a submission name
+    const generatedId = useId();
+    const controlId = name || generatedId;
+
     const handleChange = (event: ChangeEvent<HTMLSelectElement>) => {
         const target = event.target as HTMLSelectElement;
 
@@ -111,7 +115,7 @@ export default function SelectSimple({
         <div className="w-full space-y-2">
             {/* Label */}
             {label && (
-                <label htmlFor={name} className="text-sm font-medium block text-foreground">
+                <label htmlFor={controlId} className="text-sm font-medium block text-foreground">
                     {label}
                     {required && <span className="text-destructive ms-0.5">*</span>}
                 </label>
@@ -133,7 +137,7 @@ export default function SelectSimple({
                 {/* Native select */}
                 {multiple ? (
                     <select
-                        id={name}
+                        id={controlId}
                         multiple={true}
                         disabled={disabled}
                         value={Array.isArray(currentValue) ? currentValue.map((v) => String(v)) : []}
@@ -148,7 +152,7 @@ export default function SelectSimple({
                     </select>
                 ) : (
                     <select
-                        id={name}
+                        id={controlId}
                         disabled={disabled}
                         value={Array.isArray(currentValue) ? '' : String(currentValue || '')}
                         className={selectClass}

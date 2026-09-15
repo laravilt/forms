@@ -3,7 +3,7 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import * as LucideIcons from 'lucide-vue-next'
 import { X } from 'lucide-vue-next'
-import { ref, watch } from 'vue'
+import { computed, ref, useId, watch } from 'vue'
 
 interface Props {
   name?: string
@@ -35,6 +35,10 @@ const emit = defineEmits<{
 }>()
 
 const inputValue = ref('')
+
+// Labels need a control id even when the field is used without a submission name
+const generatedId = useId()
+const controlId = computed(() => props.name || generatedId)
 
 // Internal state for tags
 const internalTags = ref<string[]>([])
@@ -77,7 +81,7 @@ const getIconColorClass = (color?: string) => {
     'destructive': 'text-destructive',
   }
 
-  return colorMap[color] || `text-${color}`
+  return colorMap[color] || 'text-muted-foreground'
 }
 
 const addTag = (tag: string) => {
@@ -121,7 +125,7 @@ const handleBlur = () => {
     <!-- Label -->
     <label
       v-if="label"
-      :for="name"
+      :for="controlId"
       class="text-sm font-medium block text-foreground"
     >
       {{ label }}
@@ -159,6 +163,7 @@ const handleBlur = () => {
         <button
           type="button"
           class="hover:bg-secondary/80 rounded-sm transition-colors"
+          :aria-label="`Remove ${tag}`"
           :disabled="disabled"
           @click="removeTag(index)"
         >
@@ -168,6 +173,7 @@ const handleBlur = () => {
 
       <!-- Input -->
       <input
+        :id="controlId"
         v-model="inputValue"
         type="text"
         :placeholder="internalTags.length === 0 ? placeholder : ''"
@@ -188,15 +194,18 @@ const handleBlur = () => {
 
     <!-- Suggestions -->
     <div v-if="suggestions && suggestions.length > 0" class="mt-2 flex flex-wrap gap-2">
-      <Badge
+      <button
         v-for="suggestion in suggestions"
         :key="suggestion"
-        variant="outline"
-        class="cursor-pointer hover:bg-accent"
+        type="button"
+        class="rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed"
+        :disabled="disabled"
         @click="addTag(suggestion)"
       >
-        {{ suggestion }}
-      </Badge>
+        <Badge variant="outline" class="cursor-pointer hover:bg-accent">
+          {{ suggestion }}
+        </Badge>
+      </button>
     </div>
 
     <!-- Helper text -->

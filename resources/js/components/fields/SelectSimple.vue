@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, ref, useId, watch } from 'vue'
 import * as LucideIcons from 'lucide-vue-next'
 
 interface Option {
@@ -53,6 +53,10 @@ watch(() => props.value ?? props.modelValue, (newValue) => {
 // Use internal value for display and form submission
 const currentValue = computed(() => internalValue.value)
 
+// Labels need a control id even when the field is used without a submission name
+const generatedId = useId()
+const controlId = computed(() => props.name || generatedId)
+
 // Helper to get Lucide icon component by name
 const getIconComponent = (iconName?: string) => {
   if (!iconName) return null
@@ -78,7 +82,7 @@ const getIconColorClass = (color?: string) => {
     destructive: 'text-destructive',
   }
 
-  return colorMap[color] || `text-${color}`
+  return colorMap[color] || 'text-muted-foreground'
 }
 
 const handleChange = (event: Event) => {
@@ -103,7 +107,7 @@ const handleChange = (event: Event) => {
     <!-- Label -->
     <label
       v-if="label"
-      :for="name"
+      :for="controlId"
       class="text-sm font-medium block text-foreground"
     >
       {{ label }}
@@ -130,6 +134,7 @@ const handleChange = (event: Event) => {
       <!-- Native select -->
       <select
         v-if="multiple"
+        :id="controlId"
         :multiple="true"
         :disabled="disabled"
         :value="Array.isArray(currentValue) ? currentValue : []"
@@ -147,6 +152,7 @@ const handleChange = (event: Event) => {
       </select>
       <select
         v-else
+        :id="controlId"
         :disabled="disabled"
         :value="currentValue || ''"
         class="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"

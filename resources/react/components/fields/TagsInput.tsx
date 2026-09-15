@@ -2,7 +2,7 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { resolveIcon } from '@laravilt/support/lib/icons';
 import { X } from 'lucide-react';
-import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
+import { useEffect, useId, useRef, useState, type KeyboardEvent } from 'react';
 
 export interface TagsInputProps {
     name?: string;
@@ -42,7 +42,7 @@ const getIconColorClass = (color?: string) => {
         destructive: 'text-destructive',
     };
 
-    return colorMap[color] || `text-${color}`;
+    return colorMap[color] || 'text-muted-foreground';
 };
 
 export default function TagsInput({
@@ -64,6 +64,10 @@ export default function TagsInput({
     onUpdateValue,
 }: TagsInputProps) {
     const [inputValue, setInputValue] = useState('');
+
+    // Labels need a control id even when the field is used without a submission name
+    const generatedId = useId();
+    const controlId = name || generatedId;
 
     const incoming = value ?? modelValue;
 
@@ -120,7 +124,7 @@ export default function TagsInput({
         <div className="w-full space-y-2">
             {/* Label */}
             {label && (
-                <label htmlFor={name} className="text-sm font-medium block text-foreground">
+                <label htmlFor={controlId} className="text-sm font-medium block text-foreground">
                     {label}
                     {required && <span className="text-destructive ms-0.5">*</span>}
                 </label>
@@ -156,7 +160,7 @@ export default function TagsInput({
 
                 {/* Input */}
                 <input
-                    id={name}
+                    id={controlId}
                     value={inputValue}
                     onChange={(e) => setInputValue(e.target.value)}
                     type="text"

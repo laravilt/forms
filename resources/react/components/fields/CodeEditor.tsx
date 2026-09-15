@@ -152,7 +152,7 @@ const getIconColorClass = (color?: string): string => {
         destructive: 'text-destructive',
     };
 
-    return colorMap[color] || `text-${color}`;
+    return colorMap[color] || 'text-muted-foreground';
 };
 
 export default function CodeEditor({
@@ -293,17 +293,18 @@ export default function CodeEditor({
         }
     }, [externalValue]);
 
-    // Watch for language / theme / readOnly / disabled changes: recreate the editor
-    const previousEditorConfig = useRef({ language, theme, readOnly, disabled });
+    // Watch for language / theme / readOnly / disabled / lineNumbers changes: recreate the editor
+    const previousEditorConfig = useRef({ language, theme, readOnly, disabled, lineNumbers });
     useEffect(() => {
         const previous = previousEditorConfig.current;
-        previousEditorConfig.current = { language, theme, readOnly, disabled };
+        previousEditorConfig.current = { language, theme, readOnly, disabled, lineNumbers };
 
         if (
             previous.language === language &&
             previous.theme === theme &&
             previous.readOnly === readOnly &&
-            previous.disabled === disabled
+            previous.disabled === disabled &&
+            previous.lineNumbers === lineNumbers
         ) {
             return;
         }
@@ -319,7 +320,7 @@ export default function CodeEditor({
             state,
             parent: editorContainer.current,
         });
-    }, [language, theme, readOnly, disabled]);
+    }, [language, theme, readOnly, disabled, lineNumbers]);
 
     const PrefixIcon = resolveIcon(prefixIcon);
     const SuffixIcon = resolveIcon(suffixIcon);
