@@ -253,7 +253,7 @@ const getIconColorClass = (color?: string): string => {
         destructive: 'text-destructive',
     };
 
-    return colorMap[color] || `text-${color}`;
+    return colorMap[color] || 'text-muted-foreground';
 };
 
 export default function MarkdownEditor({
@@ -272,6 +272,8 @@ export default function MarkdownEditor({
     suffixIconColor,
     toolbarButtons = DEFAULT_TOOLBAR_BUTTONS,
     fileAttachmentsEnabled = false,
+    fileAttachmentsDisk = 'public',
+    fileAttachmentsDirectory = 'attachments',
     fileAttachmentsAcceptedFileTypes = DEFAULT_ACCEPTED_FILE_TYPES,
     fileAttachmentsMaxSize = 12288, // 12 MB
     onUpdateModelValue,
@@ -293,6 +295,7 @@ export default function MarkdownEditor({
     }, [externalValue]);
 
     const [showPreview, setShowPreview] = useState<boolean>(preview);
+    const [isUploading, setIsUploading] = useState(false);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const uploadHistory = useRef<Array<{ action: string; value: string }>>([]);
@@ -447,17 +450,53 @@ export default function MarkdownEditor({
             return;
         }
 
-        // TODO: Implement actual file upload to Laravel backend
-        // For now, we'll create a data URL for preview
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            const imageUrl = e.target?.result as string;
-            insertMarkdown('![', `](${imageUrl})`, file.name);
-        };
-        reader.readAsDataURL(file);
-
         // Reset file input
         target.value = '';
+
+        setIsUploading(true);
+        try {
+            const url = await uploadAttachment(file);
+            insertMarkdown('![', `](${url})`, file.name);
+        } catch (error) {
+            console.error('[MarkdownEditor] Attachment upload failed:', error);
+            alert('File upload failed. Please try again.');
+        } finally {
+            setIsUploading(false);
+        }
+    };
+
+    // Store the attachment on the configured disk/directory through the forms upload route
+    const uploadAttachment = async (file: File): Promise<string> => {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('disk', fileAttachmentsDisk);
+        formData.append('directory', fileAttachmentsDirectory);
+        formData.append('visibility', 'public');
+        formData.append('maxSize', String(fileAttachmentsMaxSize));
+        fileAttachmentsAcceptedFileTypes.forEach((type) => formData.append('acceptedFileTypes[]', type));
+        formData.append('withUrl', '1');
+
+        const response = await fetch('/uploads', {
+            method: 'POST',
+            headers: {
+                Accept: 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+            credentials: 'include',
+            body: formData,
+        });
+
+        if (!response.ok) {
+            throw new Error(`Upload failed with status ${response.status}`);
+        }
+
+        const result = await response.json();
+        if (!result?.url) {
+            throw new Error('Upload response did not include a URL');
+        }
+
+        return result.url as string;
     };
 
     const handleInput = (event: ChangeEvent<HTMLTextAreaElement>) => {
@@ -521,7 +560,7 @@ export default function MarkdownEditor({
                                             variant="ghost"
                                             size="sm"
                                             className="h-8 w-8 p-0"
-                                            disabled={disabled || (button === 'attachFiles' && !fileAttachmentsEnabled)}
+                                            disabled={disabled || (button === 'attachFiles' && (!fileAttachmentsEnabled || isUploading))}
                                             title={button}
                                             onClick={() => handleToolbarAction(button)}
                                         >

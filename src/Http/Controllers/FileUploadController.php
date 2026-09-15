@@ -16,7 +16,7 @@ class FileUploadController
     /**
      * Handle file upload.
      */
-    public function upload(Request $request): HttpResponse
+    public function upload(Request $request): HttpResponse|JsonResponse
     {
         // Base validation rules
         $validationRules = [
@@ -82,6 +82,14 @@ class FileUploadController
 
         // Get the URL
         $url = Storage::disk($disk)->url($storedPath);
+
+        // Callers that embed the file (e.g. MarkdownEditor attachments) need its public URL as well
+        if ($request->boolean('withUrl')) {
+            return response()->json([
+                'path' => $storedPath,
+                'url' => $url,
+            ]);
+        }
 
         // FilePond expects a plain text response with the unique file identifier
         // We return the stored path which will be used as the serverId
