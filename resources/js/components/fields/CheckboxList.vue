@@ -99,7 +99,7 @@ const getIconColorClass = (color?: string) => {
     'muted': 'text-muted-foreground',
     'destructive': 'text-destructive',
   }
-  return colorMap[color] || `text-${color}`
+  return colorMap[color] || 'text-muted-foreground'
 }
 
 // Filter options by search query
@@ -557,7 +557,7 @@ const hasGroups = computed(() => {
         :is="getIconComponent('search-x')"
         class="h-10 w-10 mx-auto mb-3 opacity-40"
       />
-      <p class="text-sm">No permissions found</p>
+      <p class="text-sm">{{ trans('forms::forms.checkbox_list.no_results') }}</p>
     </div>
   </div>
 </template>
