@@ -1,5 +1,5 @@
 <template>
-    <component :is="as" ref="formRef" :class="containerClass" @submit.prevent>
+    <FormRoot :tag="as" ref="formRef" :class="containerClass" @submit.prevent>
         <template v-for="(component, index) in internalSchema" :key="component.name || component.id || index">
             <!-- Group consecutive actions together (only render on first action in group) -->
             <div v-if="isAction(component) && !isPreviousItemAction(index) && isNextItemAction(index)" class="flex flex-wrap gap-2 items-start">
@@ -34,7 +34,7 @@
                 @update:model-value="(value) => handleComponentUpdate(component, value)"
             />
         </template>
-    </component>
+    </FormRoot>
 </template>
 
 <script lang="ts">
@@ -43,7 +43,7 @@ let formScopeCounter = 0
 </script>
 
 <script setup lang="ts">
-import { defineAsyncComponent, onMounted, onUnmounted, computed, h, ref, watch, provide, inject, nextTick } from 'vue'
+import { defineAsyncComponent, defineComponent, onMounted, onUnmounted, computed, h, ref, watch, provide, inject, nextTick } from 'vue'
 import ActionButton from '@laravilt/actions/components/ActionButton.vue'
 
 // Import commonly used components directly for faster modal/form load
@@ -57,11 +57,29 @@ import CheckboxList from './fields/CheckboxList.vue'
 import Select from './fields/Select.vue'
 import Hidden from './fields/Hidden.vue'
 
+// An explicit name: the SFC's inferred self-name is "Form", which `<component :is="as">` would resolve
+// for as="form" (Vue checks the component's own name before native tags), rendering Form inside itself.
+defineOptions({ name: 'LaraviltForm' })
+
 // Unique id of this form root, provided as 'laravilt:form-scope' (see ActionButton's action-updated-data event)
 const formScope = `laravilt-form-${++formScopeCounter}`
 
 // A <form>, or a <div> when nested inside another form (e.g. tab content) since nested forms are invalid HTML
-const formRef = ref<HTMLElement | null>(null)
+/*
+  The root element. A string given to <component :is> is resolved against registered components
+  before native tags, and laravilt/forms registers this component globally as "Form" (legacy name),
+  so :is="'form'" rendered Form inside itself until the stack overflowed. h() with a tag name
+  always creates the native element; class and @submit fall through to it.
+*/
+const FormRoot = defineComponent({
+    name: 'LaraviltFormRoot',
+    props: { tag: { type: String, default: 'form' } },
+    setup(rootProps, { slots }) {
+        return () => h(rootProps.tag === 'div' ? 'div' : 'form', slots.default?.())
+    },
+})
+
+const formRef = ref<{ $el?: Element } | null>(null)
 const internalFormData = ref<Record<string, any>>({})
 
 // Local validation errors for client-side validation
@@ -464,10 +482,11 @@ const validateForm = () => {
     }
 
     // Also run HTML5 validation for native form elements
-    if (formRef.value instanceof HTMLFormElement) {
-        const isHtml5Valid = formRef.value.checkValidity()
+    const formElement = formRef.value?.$el
+    if (formElement instanceof HTMLFormElement) {
+        const isHtml5Valid = formElement.checkValidity()
         if (!isHtml5Valid) {
-            formRef.value.reportValidity()
+            formElement.reportValidity()
             return false
         }
     }
