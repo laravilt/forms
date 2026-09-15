@@ -145,7 +145,7 @@ const getIconColorClass = (color?: string) => {
     'destructive': 'text-destructive',
   }
 
-  return colorMap[color] || `text-${color}`
+  return colorMap[color] || 'text-muted-foreground'
 }
 
 // Initialize TipTap editor
@@ -470,7 +470,7 @@ const setTextColor = () => {
       v-if="name"
       type="hidden"
       :name="name"
-      :value="editor?.getHTML() || ''"
+      :value="json ? (editor ? JSON.stringify(editor.getJSON()) : '') : (editor?.getHTML() || '')"
     />
 
     <!-- Header icons -->

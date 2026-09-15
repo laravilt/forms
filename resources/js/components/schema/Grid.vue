@@ -8,10 +8,10 @@
             <component
                 :is="getComponent(child)"
                 v-bind="getComponentProps(child)"
-                :value="modelValue?.[child.name]"
-                :model-value="modelValue?.[child.name]"
+                :value="isSchemaComponent(child) ? undefined : modelValue?.[child.name]"
+                :model-value="isSchemaComponent(child) ? modelValue : modelValue?.[child.name]"
                 :disabled="props.disabled || child.disabled"
-                @update:model-value="(value) => updateValue(child.name, value)"
+                @update:model-value="(value) => isSchemaComponent(child) ? updateSchemaValue(value) : updateValue(child.name, value)"
             />
         </div>
     </div>
@@ -19,6 +19,7 @@
 
 <script setup lang="ts">
 import { computed, defineAsyncComponent } from 'vue'
+import { colSpanClass, gridColsClass } from '../../lib/gridClasses'
 
 // Import commonly used components directly for faster modal load
 import TextInput from '../fields/TextInput.vue'
@@ -52,6 +53,15 @@ const updateValue = (name: string, value: any) => {
     emit('update:modelValue', newValue)
 }
 
+// Schema components (Tabs, Section, Grid) take the whole model, not a single field value
+const schemaComponentTypes = ['tabs', 'section', 'grid']
+const isSchemaComponent = (component: any) => schemaComponentTypes.includes(component.component)
+
+// Nested schema components emit the whole (merged) model
+const updateSchemaValue = (value: Record<string, any>) => {
+    emit('update:modelValue', { ...(props.modelValue || {}), ...(value || {}) })
+}
+
 // Get component props, excluding value, modelValue, and disabled since we set them explicitly
 const getComponentProps = (component: any) => {
     const { value, modelValue, disabled, ...rest } = component
@@ -71,19 +81,17 @@ const gridClasses = computed(() => {
     const classes = ['grid', 'gap-6']
 
     if (typeof props.columns === 'number') {
-        classes.push(`grid-cols-1`)
+        classes.push('grid-cols-1')
         if (props.columns > 1) {
-            classes.push(`md:grid-cols-${props.columns}`)
+            classes.push(gridColsClass(props.columns, 'md'))
         }
-    } else if (typeof props.columns === 'object') {
-        if (props.columns.default) classes.push(`grid-cols-${props.columns.default}`)
-        if (props.columns.sm) classes.push(`sm:grid-cols-${props.columns.sm}`)
-        if (props.columns.md) classes.push(`md:grid-cols-${props.columns.md}`)
-        if (props.columns.lg) classes.push(`lg:grid-cols-${props.columns.lg}`)
-        if (props.columns.xl) classes.push(`xl:grid-cols-${props.columns.xl}`)
+    } else if (props.columns && typeof props.columns === 'object') {
+        for (const breakpoint of ['default', 'sm', 'md', 'lg', 'xl']) {
+            if (props.columns[breakpoint]) classes.push(gridColsClass(props.columns[breakpoint], breakpoint))
+        }
     }
 
-    return classes.join(' ')
+    return classes.filter(Boolean).join(' ')
 })
 
 const getColumnSpanClass = (child: any): string => {
@@ -95,16 +103,15 @@ const getColumnSpanClass = (child: any): string => {
     }
 
     if (typeof child.columnSpan === 'number') {
-        return `col-span-${child.columnSpan}`
+        return colSpanClass(child.columnSpan)
     }
 
     if (typeof child.columnSpan === 'object') {
         const classes: string[] = []
-        if (child.columnSpan.default) classes.push(`col-span-${child.columnSpan.default}`)
-        if (child.columnSpan.sm) classes.push(`sm:col-span-${child.columnSpan.sm}`)
-        if (child.columnSpan.md) classes.push(`md:col-span-${child.columnSpan.md}`)
-        if (child.columnSpan.lg) classes.push(`lg:col-span-${child.columnSpan.lg}`)
-        return classes.join(' ')
+        for (const breakpoint of ['default', 'sm', 'md', 'lg']) {
+            if (child.columnSpan[breakpoint]) classes.push(colSpanClass(child.columnSpan[breakpoint], breakpoint))
+        }
+        return classes.filter(Boolean).join(' ')
     }
 
     return ''

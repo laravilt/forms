@@ -57,6 +57,9 @@ const emit = defineEmits<{
 // Internal value tracking
 const internalValue = ref<string>(props.modelValue ?? props.value ?? '')
 
+// The CodeMirror container is not labelable, so the label is referenced via aria-labelledby
+const labelId = computed(() => (props.label && props.name ? `${props.name}-label` : undefined))
+
 const editorContainer = ref<HTMLDivElement>()
 let editorView: EditorView | null = null
 
@@ -115,7 +118,7 @@ const getIconColorClass = (color?: string) => {
     'destructive': 'text-destructive',
   }
 
-  return colorMap[color] || `text-${color}`
+  return colorMap[color] || 'text-muted-foreground'
 }
 
 // Computed language label
@@ -184,6 +187,16 @@ const createEditorState = (doc: string) => {
     extensions.push(
       EditorView.contentAttributes.of({ 'aria-placeholder': props.placeholder })
     )
+  }
+
+  // Associate the label with the editable content
+  if (labelId.value) {
+    extensions.push(EditorView.contentAttributes.of({ 'aria-labelledby': labelId.value }))
+  }
+
+  // basicSetup always includes the line-number gutter; hide it when disabled
+  if (props.lineNumbers === false) {
+    extensions.push(EditorView.theme({ '.cm-gutters': { display: 'none' } }))
   }
 
   return EditorState.create({
@@ -259,8 +272,8 @@ watch(() => props.theme, () => {
   })
 })
 
-// Watch for readOnly/disabled changes
-watch(() => [props.readOnly, props.disabled], () => {
+// Watch for readOnly/disabled/lineNumbers changes
+watch(() => [props.readOnly, props.disabled, props.lineNumbers], () => {
   if (!editorView) return
 
   // Recreate editor with new read-only state
@@ -280,7 +293,7 @@ watch(() => [props.readOnly, props.disabled], () => {
     <!-- Label -->
     <label
       v-if="label"
-      :for="name"
+      :id="labelId"
       class="text-sm font-medium block text-foreground"
     >
       {{ label }}

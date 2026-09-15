@@ -16,6 +16,7 @@ import LaraviltHidden from './components/fields/Hidden.vue';
 import LaraviltDatePicker from './components/fields/DatePicker.vue';
 import LaraviltTimePicker from './components/fields/TimePicker.vue';
 import LaraviltDateTimePicker from './components/fields/DateTimePicker.vue';
+import LaraviltDateRangePicker from './components/fields/DateRangePicker.vue';
 import LaraviltFileUpload from './components/fields/FileUpload.vue';
 import LaraviltRichEditor from './components/fields/RichEditor.vue';
 import LaraviltMarkdownEditor from './components/fields/MarkdownEditor.vue';
@@ -23,6 +24,10 @@ import LaraviltCodeEditor from './components/fields/CodeEditor.vue';
 import LaraviltColorPicker from './components/fields/ColorPicker.vue';
 import LaraviltTagsInput from './components/fields/TagsInput.vue';
 import LaraviltKeyValue from './components/fields/KeyValue.vue';
+import LaraviltIconPicker from './components/fields/IconPicker.vue';
+import LaraviltNumberField from './components/fields/NumberField.vue';
+import LaraviltPinInput from './components/fields/PinInput.vue';
+import LaraviltRateInput from './components/fields/RateInput.vue';
 import LaraviltRepeater from './components/fields/Repeater.vue';
 import LaraviltBuilder from './components/fields/Builder.vue';
 import LaraviltSlider from './components/fields/Slider.vue';
@@ -50,6 +55,7 @@ export default {
         app.component('laravilt-date-picker', LaraviltDatePicker);
         app.component('laravilt-time-picker', LaraviltTimePicker);
         app.component('laravilt-datetime-picker', LaraviltDateTimePicker);
+        app.component('laravilt-date-range-picker', LaraviltDateRangePicker);
         app.component('laravilt-file-upload', LaraviltFileUpload);
         app.component('laravilt-rich-editor', LaraviltRichEditor);
         app.component('laravilt-markdown-editor', LaraviltMarkdownEditor);
@@ -60,6 +66,10 @@ export default {
         app.component('laravilt-repeater', LaraviltRepeater);
         app.component('laravilt-builder', LaraviltBuilder);
         app.component('laravilt-slider', LaraviltSlider);
+        app.component('laravilt-icon-picker', LaraviltIconPicker);
+        app.component('laravilt-number-field', LaraviltNumberField);
+        app.component('laravilt-pin-input', LaraviltPinInput);
+        app.component('laravilt-rate-input', LaraviltRateInput);
 
         // Schema components
         app.component('laravilt-tabs', LaraviltTabs);

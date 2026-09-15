@@ -219,7 +219,7 @@ const getIconColorClass = (color?: string) => {
     'destructive': 'text-destructive',
   }
 
-  return colorMap[color] || `text-${color}`
+  return colorMap[color] || 'text-muted-foreground'
 }
 
 const open = ref(false)
@@ -577,7 +577,8 @@ const handleScroll = (event: Event) => {
   }
 }
 
-// Watch search term changes directly
+// Watch search term changes directly. reka-ui v2's ComboboxRoot has no searchTerm model, so
+// ComboboxInput's v-model is the only source and this watcher is the single fetch path.
 let searchDebounceTimeout: ReturnType<typeof setTimeout> | undefined
 watch(searchTerm, (newValue) => {
   // Update current search
@@ -1072,12 +1073,12 @@ const checkValidation = () => {
   const count = selectedValues.value.length
 
   if (props.minItems && count < props.minItems) {
-    validationError.value = `Please select at least ${props.minItems} item${props.minItems > 1 ? 's' : ''}`
+    validationError.value = props.minItemsValidationMessage ?? `Please select at least ${props.minItems} item${props.minItems > 1 ? 's' : ''}`
     return
   }
 
   if (props.maxItems && count > props.maxItems) {
-    validationError.value = `You can only select up to ${props.maxItems} item${props.maxItems > 1 ? 's' : ''}`
+    validationError.value = props.maxItemsValidationMessage ?? `You can only select up to ${props.maxItems} item${props.maxItems > 1 ? 's' : ''}`
     return
   }
 
@@ -1113,6 +1114,7 @@ const handleValueChange = (value: string | string[]) => {
     open.value = false
     // Clear search term when closing after selection
     searchTerm.value = ''
+    currentSearch.value = ''
   }
   // For multiple select, keep dropdown open and don't clear search
 }

@@ -17,6 +17,7 @@
     <!-- Internal template for direct Vue usage -->
     <FieldWrapper
         v-else
+        :id="id"
         :name="name"
         :label="label"
         :helper-text="helperText"
@@ -44,6 +45,7 @@
                 @update:model-value="(val) => textValue = val"
                 :placeholder="placeholder"
                 :rows="rows"
+                :maxlength="maxLength"
                 class="flex-1"
                 :class="[
                     hasError

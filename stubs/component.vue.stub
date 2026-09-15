@@ -47,7 +47,7 @@ const currentValue = computed({
       v-if="name"
       type="hidden"
       :name="name"
-      :value="currentValue || ''"
+      :value="currentValue ?? ''"
     />
   </div>
 </template>

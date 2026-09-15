@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import {
   PinInputRoot,
   PinInputInput,
@@ -39,6 +39,12 @@ const emit = defineEmits<{
 const pinValue = ref<string[]>(
   props.modelValue?.split('') || props.value?.split('') || []
 )
+
+// Watch for external value changes (e.g., when editing)
+watch(() => props.modelValue ?? props.value, (incoming) => {
+  if ((incoming ?? '') === pinValue.value.join('')) return
+  pinValue.value = incoming?.split('') ?? []
+})
 
 const updateValue = (value: string[]) => {
   pinValue.value = value
@@ -97,6 +103,7 @@ const alignmentClasses = {
         <PinInputInput
           v-for="(id, index) in length"
           :key="id"
+          :id="index === 0 ? name : undefined"
           :index="index"
           :class="[
             'h-14 w-14 rounded-lg border-2 bg-background text-lg font-semibold ring-offset-background transition-all duration-200 file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50 p-0',
