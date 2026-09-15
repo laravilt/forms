@@ -2,6 +2,7 @@
 
 namespace Laravilt\Forms;
 
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use Laravilt\Forms\Components\Checkbox;
 use Laravilt\Forms\Components\ColorPicker;
@@ -51,9 +52,12 @@ class FormsServiceProvider extends ServiceProvider
         // Load migrations
         $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
 
-        // Load routes (only in local environment)
-        if ($this->app->environment('local')) {
-            $this->loadRoutesFrom(__DIR__.'/../routes/web.php');
+        // Upload and reactive-field endpoints (FileUpload, MarkdownEditor, live fields). These were
+        // once registered only when APP_ENV=local, which broke uploads and live fields in production.
+        if (config('laravilt-forms.routes.enabled', true) && ! $this->app->routesAreCached()) {
+            Route::middleware(
+                config('laravilt-forms.routes.middleware', ['web', 'auth', 'throttle:120,1'])
+            )->group(__DIR__.'/../routes/web.php');
         }
 
         if ($this->app->runningInConsole()) {
