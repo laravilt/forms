@@ -34,6 +34,10 @@ interface Props {
   readonly?: boolean
   minDate?: string | null
   maxDate?: string | null
+  // Names serialized by the PHP DateTimePicker (minDateTime()/maxDateTime()/timezone())
+  minDateTime?: string | null
+  maxDateTime?: string | null
+  timezone?: string | null
   hourCycle?: 12 | 24
   locale?: string
 }
@@ -88,11 +92,22 @@ watch(
   }
 )
 
-const minDateValue = computed(() => parseDateTimeString(props.minDate))
-const maxDateValue = computed(() => parseDateTimeString(props.maxDate))
+const minDateValue = computed(() => parseDateTimeString(props.minDate ?? props.minDateTime))
+const maxDateValue = computed(() => parseDateTimeString(props.maxDate ?? props.maxDateTime))
+
+// Values are wall-clock "Y-m-d H:i" strings in the field's timezone (PHP timezone(), else the
+// browser's), so "now" for the initial calendar month is taken in that zone.
+const nowInFieldTimezone = () => {
+  try {
+    return now(props.timezone || getLocalTimeZone())
+  } catch {
+    // Invalid IANA name: fall back to the browser's zone
+    return now(getLocalTimeZone())
+  }
+}
 
 // Month/Year navigation
-const placeholder = ref(selectedDateTime.value || now(getLocalTimeZone()))
+const placeholder = ref(selectedDateTime.value || nowInFieldTimezone())
 
 // Generate years range (50 years back, 10 years forward)
 const years = computed(() => {

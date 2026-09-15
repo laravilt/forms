@@ -30,6 +30,10 @@ export interface DateTimePickerProps {
     readonly?: boolean;
     minDate?: string | null;
     maxDate?: string | null;
+    // Names serialized by the PHP DateTimePicker (minDateTime()/maxDateTime()/timezone())
+    minDateTime?: string | null;
+    maxDateTime?: string | null;
+    timezone?: string | null;
     hourCycle?: 12 | 24;
     locale?: string;
     onUpdateModelValue?: (value: string | null) => void;
@@ -62,6 +66,17 @@ const formatDateTimeValue = (dateTime: CalendarDateTime | null | undefined): str
     return `${year}-${month}-${day} ${hour}:${minute}`;
 };
 
+// Values are wall-clock "Y-m-d H:i" strings in the field's timezone (PHP timezone(), else the
+// browser's), so "now" for the initial calendar month is taken in that zone.
+const nowInTimezone = (timezone?: string | null) => {
+    try {
+        return now(timezone || getLocalTimeZone());
+    } catch {
+        // Invalid IANA name: fall back to the browser's zone
+        return now(getLocalTimeZone());
+    }
+};
+
 export default function DateTimePicker({
     name,
     value = null,
@@ -73,6 +88,9 @@ export default function DateTimePicker({
     readonly,
     minDate,
     maxDate,
+    minDateTime,
+    maxDateTime,
+    timezone,
     hourCycle = 24,
     locale = 'en',
     onUpdateModelValue,
@@ -92,13 +110,11 @@ export default function DateTimePicker({
         setSelectedDateTime(parseDateTimeString(incoming));
     }, [incoming]);
 
-    const minDateValue = useMemo(() => parseDateTimeString(minDate), [minDate]);
-    const maxDateValue = useMemo(() => parseDateTimeString(maxDate), [maxDate]);
+    const minDateValue = useMemo(() => parseDateTimeString(minDate ?? minDateTime), [minDate, minDateTime]);
+    const maxDateValue = useMemo(() => parseDateTimeString(maxDate ?? maxDateTime), [maxDate, maxDateTime]);
 
     // Month/Year navigation
-    const [placeholder, setPlaceholder] = useState<CalendarDate>(() =>
-        toCalendarDate(selectedDateTime || now(getLocalTimeZone())),
-    );
+    const [placeholder, setPlaceholder] = useState<CalendarDate>(() => toCalendarDate(selectedDateTime || nowInTimezone(timezone)));
 
     // reka keeps the calendar placeholder on the selected value
     const selectedKey = selectedDateTime ? selectedDateTime.toString() : '';
