@@ -1,5 +1,5 @@
 import ActionButton from '@laravilt/actions/components/ActionButton';
-import { ErrorsContext, SchemaContext, useErrors, type SchemaContextValue } from '@laravilt/support/composables/contexts';
+import { createFormScopeId, ErrorsContext, FormScopeContext, SchemaContext, useErrors, type SchemaContextValue } from '@laravilt/support/composables/contexts';
 import { useLatest } from '@laravilt/support/composables/hooks';
 import { resolveComponent } from '@laravilt/support/composables/registry';
 import { Fragment, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState, type FormEvent, type Ref } from 'react';
@@ -177,6 +177,9 @@ export default function Form({
     onUpdateModelValue,
     ref,
 }: FormProps) {
+    // Unique id of this form root (see ActionButton's action-updated-data event)
+    const [formScope] = useState(() => createFormScopeId('form'));
+
     const formRef = useRef<HTMLElement | null>(null);
     const setFormElement = useCallback((element: HTMLElement | null) => {
         formRef.current = element;
@@ -264,6 +267,12 @@ export default function Form({
 
         // Handle action-updated data events
         const handleActionUpdatedData = (event: Event) => {
+            // Ignore data from an action that belongs to another form (unscoped events still apply)
+            const eventScope = (event as any).laraviltFormScope;
+            if (eventScope && eventScope !== formScope) {
+                return;
+            }
+
             const updatedData = (event as CustomEvent).detail;
 
             if (updatedData && typeof updatedData === 'object') {
@@ -548,6 +557,7 @@ export default function Form({
     );
 
     return (
+        <FormScopeContext.Provider value={formScope}>
         <SchemaContext.Provider value={schemaContext}>
             {/* Override the errors provided by ErrorProvider with our merged errors (local + server) */}
             <ErrorsContext.Provider value={errors}>
@@ -602,5 +612,6 @@ export default function Form({
                 </Container>
             </ErrorsContext.Provider>
         </SchemaContext.Provider>
+        </FormScopeContext.Provider>
     );
 }
