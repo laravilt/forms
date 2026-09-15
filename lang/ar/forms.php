@@ -91,5 +91,6 @@ return [
         'select_all_permissions' => 'تحديد جميع الصلاحيات',
         'selected' => 'محدد',
         'search_placeholder' => 'بحث في الصلاحيات...',
+        'no_results' => 'لم يتم العثور على صلاحيات',
     ],
 ];

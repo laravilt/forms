@@ -115,6 +115,7 @@
         <!-- Error Message -->
         <p
             v-if="hasError && errorMessage"
+            :id="`${name}-error`"
             class="mt-1.5 text-xs text-destructive"
             role="alert"
         >
@@ -144,13 +145,8 @@ const props = defineProps<{
     hintActions?: any[];
 }>();
 
-// Generate field ID from name if not provided
-const fieldId = computed(() => {
-    if (props.id) return props.id;
-    if (props.name)
-        return props.name.toLowerCase().replace(/[^a-z0-9-_]/g, '-');
-    return undefined;
-});
+// Match the id the controls render (`id || name`) so the label targets them
+const fieldId = computed(() => props.id || props.name || undefined);
 
 // Inject errors from parent
 const errors = inject<ComputedRef<Record<string, string | string[]>>>(

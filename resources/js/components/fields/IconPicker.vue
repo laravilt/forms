@@ -99,7 +99,7 @@ const getIconColorClass = (color?: string) => {
     destructive: 'text-destructive',
   }
 
-  return colorMap[color] || `text-${color}`
+  return colorMap[color] || 'text-muted-foreground'
 }
 
 // Filter icons based on search query
@@ -217,7 +217,7 @@ const selectedIconComponent = computed(() => {
 })
 
 // Watch for external value changes
-watch(() => props.modelValue, (newValue) => {
+watch(() => props.modelValue ?? props.value, (newValue) => {
   if (props.multiple) {
     if (Array.isArray(newValue)) {
       selectedIcons.value = [...newValue]

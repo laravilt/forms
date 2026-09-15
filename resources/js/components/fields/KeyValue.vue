@@ -3,7 +3,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import * as LucideIcons from 'lucide-vue-next'
 import { Plus, X, GripVertical } from 'lucide-vue-next'
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useLocalization } from '@laravilt/support/composables'
 
 // Initialize localization
@@ -78,15 +78,43 @@ const getIconColorClass = (color?: string) => {
     'destructive': 'text-destructive',
   }
 
-  return colorMap[color] || `text-${color}`
+  return colorMap[color] || 'text-muted-foreground'
 }
 
-// Convert modelValue to array format for easier manipulation
-const pairs = ref<KeyValuePair[]>(
-  Array.isArray(props.modelValue)
-    ? props.modelValue
-    : Object.entries(props.modelValue).map(([key, value]) => ({ key, value }))
-)
+type KeyValueModel = Record<string, string> | KeyValuePair[]
+
+// Convert the model to array format for easier manipulation
+const toPairs = (model: KeyValueModel | null | undefined): KeyValuePair[] =>
+  Array.isArray(model)
+    ? model.map(pair => ({ ...pair }))
+    : Object.entries(model || {}).map(([key, value]) => ({ key, value }))
+
+const pairs = ref<KeyValuePair[]>(toPairs(props.modelValue))
+
+// Re-sync on external changes (reset, reactive update). Our own emits echo back unchanged and are
+// skipped, so in-progress rows (e.g. one with an empty key) are not dropped.
+let lastEmitted: KeyValueModel | undefined = props.modelValue
+watch(() => props.modelValue, (model) => {
+  if (model === lastEmitted) return
+  lastEmitted = model
+  pairs.value = toPairs(model)
+})
+
+// Emit as object if original was object, array otherwise
+const normalize = (nextPairs: KeyValuePair[]): KeyValueModel => {
+  if (Array.isArray(props.modelValue)) {
+    return nextPairs.map(pair => ({ ...pair }))
+  }
+  const obj: Record<string, string> = {}
+  nextPairs.forEach(pair => {
+    if (pair.key) {
+      obj[pair.key] = pair.value
+    }
+  })
+  return obj
+}
+
+const hiddenValue = computed(() => JSON.stringify(normalize(pairs.value)))
 
 const addPair = () => {
   pairs.value.push({ key: '', value: '' })
@@ -104,20 +132,10 @@ const updatePair = (index: number, field: 'key' | 'value', value: string) => {
 }
 
 const emitUpdate = () => {
-  // Emit as object if original was object, array otherwise
-  if (Array.isArray(props.modelValue)) {
-    emit('update:modelValue', pairs.value)
-    emit('update:value', pairs.value)
-  } else {
-    const obj: Record<string, string> = {}
-    pairs.value.forEach(pair => {
-      if (pair.key) {
-        obj[pair.key] = pair.value
-      }
-    })
-    emit('update:modelValue', obj)
-    emit('update:value', obj)
-  }
+  const next = normalize(pairs.value)
+  lastEmitted = next
+  emit('update:modelValue', next)
+  emit('update:value', next)
 }
 </script>
 
@@ -138,7 +156,7 @@ const emitUpdate = () => {
       v-if="name"
       type="hidden"
       :name="name"
-      :value="JSON.stringify(modelValue)"
+      :value="hiddenValue"
     />
 
     <!-- Header with icons -->

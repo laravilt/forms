@@ -91,5 +91,6 @@ return [
         'select_all_permissions' => 'Select All Permissions',
         'selected' => 'selected',
         'search_placeholder' => 'Search permissions...',
+        'no_results' => 'No permissions found',
     ],
 ];

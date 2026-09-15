@@ -1,4 +1,5 @@
 import { resolveComponent } from '@laravilt/support/composables/registry';
+import { colSpanClass, gridColsClass } from '../../lib/gridClasses';
 
 export interface GridProps {
     columns: number | Record<string, number>;
@@ -33,16 +34,15 @@ const getColumnSpanClass = (child: any): string => {
     }
 
     if (typeof child.columnSpan === 'number') {
-        return `col-span-${child.columnSpan}`;
+        return colSpanClass(child.columnSpan);
     }
 
     if (typeof child.columnSpan === 'object') {
         const classes: string[] = [];
-        if (child.columnSpan.default) classes.push(`col-span-${child.columnSpan.default}`);
-        if (child.columnSpan.sm) classes.push(`sm:col-span-${child.columnSpan.sm}`);
-        if (child.columnSpan.md) classes.push(`md:col-span-${child.columnSpan.md}`);
-        if (child.columnSpan.lg) classes.push(`lg:col-span-${child.columnSpan.lg}`);
-        return classes.join(' ');
+        for (const breakpoint of ['default', 'sm', 'md', 'lg']) {
+            if (child.columnSpan[breakpoint]) classes.push(colSpanClass(child.columnSpan[breakpoint], breakpoint));
+        }
+        return classes.filter(Boolean).join(' ');
     }
 
     return '';
@@ -69,19 +69,17 @@ export default function Grid({ columns, schema, modelValue, disabled, onUpdateMo
         const classes = ['grid', 'gap-6'];
 
         if (typeof columns === 'number') {
-            classes.push(`grid-cols-1`);
+            classes.push('grid-cols-1');
             if (columns > 1) {
-                classes.push(`md:grid-cols-${columns}`);
+                classes.push(gridColsClass(columns, 'md'));
             }
         } else if (typeof columns === 'object' && columns) {
-            if (columns.default) classes.push(`grid-cols-${columns.default}`);
-            if (columns.sm) classes.push(`sm:grid-cols-${columns.sm}`);
-            if (columns.md) classes.push(`md:grid-cols-${columns.md}`);
-            if (columns.lg) classes.push(`lg:grid-cols-${columns.lg}`);
-            if (columns.xl) classes.push(`xl:grid-cols-${columns.xl}`);
+            for (const breakpoint of ['default', 'sm', 'md', 'lg', 'xl']) {
+                if (columns[breakpoint]) classes.push(gridColsClass(columns[breakpoint], breakpoint));
+            }
         }
 
-        return classes.join(' ');
+        return classes.filter(Boolean).join(' ');
     })();
 
     if (visibleSchema.length === 0) {

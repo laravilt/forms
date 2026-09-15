@@ -91,5 +91,6 @@ return [
         'select_all_permissions' => 'هەموو دەسەڵاتەکان دیاریبکە',
         'selected' => 'دیاریکراو',
         'search_placeholder' => 'گەڕان بۆ دەسەڵاتەکان...',
+        'no_results' => 'هیچ دەسەڵاتێک نەدۆزرایەوە',
     ],
 ];

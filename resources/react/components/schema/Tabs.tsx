@@ -90,9 +90,10 @@ export default function Tabs({ tabs, activeTab, modelValue, onUpdateModelValue }
                             </div>
                         </div>
                     ) : tab.schema ? (
-                        /* Actual content */
+                        /* Actual content (a div: tabs already live inside the parent <form>) */
                         <Form
                             key="content"
+                            as="div"
                             schema={tab.schema}
                             modelValue={modelValue}
                             onUpdateModelValue={(value) => onUpdateModelValue?.(value)}

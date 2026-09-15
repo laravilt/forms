@@ -51,6 +51,8 @@ const countryCodes = [
 ]
 
 const selectedCountryCode = ref('+1')
+// Several countries share a dial code (US and CA are both +1), so also track the chosen country
+const selectedCountry = ref<string | undefined>('US')
 const phoneNumber = ref('')
 const isCountrySelectorOpen = ref(false)
 const searchQuery = ref('')
@@ -73,6 +75,7 @@ if (initialValue) {
   const match = initialValue.match(/^(\+\d+)\s*(.*)$/)
   if (match) {
     selectedCountryCode.value = match[1]
+    selectedCountry.value = countryCodes.find(c => c.code === match[1])?.country
     phoneNumber.value = match[2]
   } else {
     phoneNumber.value = initialValue
@@ -89,7 +92,12 @@ watch(() => props.modelValue || props.value, (newValue) => {
   }
   const match = newValue.match(/^(\+\d+)\s*(.*)$/)
   if (match) {
-    selectedCountryCode.value = match[1]
+    const code = match[1]
+    selectedCountryCode.value = code
+    // Keep the chosen country if it still matches the dial code
+    if (countryCodes.find(c => c.country === selectedCountry.value)?.code !== code) {
+      selectedCountry.value = countryCodes.find(c => c.code === code)?.country
+    }
     phoneNumber.value = match[2]
   } else {
     phoneNumber.value = newValue
@@ -101,8 +109,9 @@ const fullPhoneNumber = computed(() => {
   return `${selectedCountryCode.value} ${phoneNumber.value}`
 })
 
-const updateCountryCode = (code: string) => {
+const updateCountryCode = (code: string, country: string) => {
   selectedCountryCode.value = code
+  selectedCountry.value = country
   isCountrySelectorOpen.value = false
   searchQuery.value = ''
   // Emit the updated value
@@ -136,7 +145,7 @@ watch(phoneNumber, () => {
             :aria-expanded="isCountrySelectorOpen"
             class="h-full border-0 bg-transparent hover:bg-accent focus:ring-0 focus-visible:ring-0 rounded-r-none px-2 gap-1"
           >
-            <span class="text-base">{{ countryCodes.find(c => c.code === selectedCountryCode)?.flag }}</span>
+            <span class="text-base">{{ countryCodes.find(c => c.country === selectedCountry)?.flag }}</span>
             <span class="text-sm font-medium">{{ selectedCountryCode }}</span>
             <ChevronsUpDown class="h-3 w-3 opacity-50" />
           </Button>
@@ -167,12 +176,12 @@ watch(phoneNumber, () => {
                 :key="country.country"
                 type="button"
                 class="w-full flex items-center gap-2 px-3 py-2 hover:bg-accent transition-colors text-left"
-                :class="{ 'bg-accent': selectedCountryCode === country.code }"
-                @click="updateCountryCode(country.code)"
+                :class="{ 'bg-accent': selectedCountry === country.country }"
+                @click="updateCountryCode(country.code, country.country)"
               >
                 <Check
                   class="h-4 w-4"
-                  :class="{ 'opacity-100': selectedCountryCode === country.code, 'opacity-0': selectedCountryCode !== country.code }"
+                  :class="{ 'opacity-100': selectedCountry === country.country, 'opacity-0': selectedCountry !== country.country }"
                 />
                 <span class="text-lg">{{ country.flag }}</span>
                 <span class="flex-1">{{ country.name }}</span>

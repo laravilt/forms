@@ -98,6 +98,7 @@ export default function Textarea({
 
     return (
         <FieldWrapper
+            id={id}
             name={name}
             label={label}
             helperText={helperText}

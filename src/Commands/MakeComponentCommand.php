@@ -4,6 +4,8 @@ namespace Laravilt\Forms\Commands;
 
 use Illuminate\Console\GeneratorCommand;
 use Illuminate\Support\Str;
+use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Output\OutputInterface;
 
 class MakeComponentCommand extends GeneratorCommand
 {
@@ -32,23 +34,32 @@ class MakeComponentCommand extends GeneratorCommand
     protected $type = 'Form Component';
 
     /**
-     * Execute the console command.
+     * Whether handle() stopped on a collision and the command must exit with a failure code.
      */
-    public function handle()
+    protected bool $hasFailed = false;
+
+    /**
+     * Execute the console command.
+     *
+     * Keeps GeneratorCommand's bool|null contract; the exit code is derived in execute().
+     */
+    public function handle(): ?bool
     {
+        $this->hasFailed = false;
+
         // GeneratorCommand::handle() returns false when the class already exists
         if (parent::handle() === false) {
-            return self::FAILURE;
+            return $this->markFailed();
         }
 
         $this->components->info("Form component [{$this->argument('name')}] created successfully.");
 
         if ($this->option('vue') && ! $this->createVueComponent()) {
-            return self::FAILURE;
+            return $this->markFailed();
         }
 
         if ($this->option('react') && ! $this->createReactComponent()) {
-            return self::FAILURE;
+            return $this->markFailed();
         }
 
         // Show usage example
@@ -58,7 +69,27 @@ class MakeComponentCommand extends GeneratorCommand
             'Usage: '.class_basename($this->argument('name')).'::make(\'field_name\')->label(\'Label\')',
         ]);
 
-        return self::SUCCESS;
+        return null;
+    }
+
+    /**
+     * Translate a failed handle() into a non-zero exit code (a `false` return would exit with 0).
+     */
+    protected function execute(InputInterface $input, OutputInterface $output): int
+    {
+        $status = parent::execute($input, $output);
+
+        return $this->hasFailed ? self::FAILURE : $status;
+    }
+
+    /**
+     * Record the failure and return GeneratorCommand's failure value.
+     */
+    protected function markFailed(): bool
+    {
+        $this->hasFailed = true;
+
+        return false;
     }
 
     /**

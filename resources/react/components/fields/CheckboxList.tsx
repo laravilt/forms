@@ -56,7 +56,7 @@ const getIconColorClass = (color?: string) => {
         muted: 'text-muted-foreground',
         destructive: 'text-destructive',
     };
-    return colorMap[color] || `text-${color}`;
+    return colorMap[color] || 'text-muted-foreground';
 };
 
 export default function CheckboxList({
@@ -504,7 +504,7 @@ export default function CheckboxList({
             {filteredOptions.length === 0 && (
                 <div className="text-center py-8 text-muted-foreground">
                     <SearchX className="h-10 w-10 mx-auto mb-3 opacity-40" />
-                    <p className="text-sm">No permissions found</p>
+                    <p className="text-sm">{trans('forms::forms.checkbox_list.no_results')}</p>
                 </div>
             )}
         </div>

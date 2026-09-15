@@ -75,7 +75,7 @@ const getIconColorClass = (color?: string) => {
     'destructive': 'text-destructive',
   }
 
-  return colorMap[color] || `text-${color}`
+  return colorMap[color] || 'text-muted-foreground'
 }
 
 const isSelected = (value: string | number) => {
@@ -106,12 +106,24 @@ const handleToggle = (value: string | number) => {
 <template>
   <div class="w-full space-y-2">
     <!-- Hidden input for form submission -->
-    <input
-      v-if="name"
-      type="hidden"
-      :name="name"
-      :value="multiple ? (Array.isArray(currentValue) ? currentValue.join(',') : '') : currentValue"
-    />
+    <!-- Multiple mode submits an array (`name[]`), matching the array the component emits -->
+    <template v-if="name">
+      <template v-if="multiple">
+        <input
+          v-for="item in (Array.isArray(currentValue) ? currentValue : [])"
+          :key="String(item)"
+          type="hidden"
+          :name="`${name}[]`"
+          :value="item"
+        />
+      </template>
+      <input
+        v-else
+        type="hidden"
+        :name="name"
+        :value="currentValue"
+      />
+    </template>
 
     <!-- Header icons -->
     <div v-if="getIconComponent(props.prefixIcon) || getIconComponent(props.suffixIcon)" class="flex items-center justify-between">

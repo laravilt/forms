@@ -244,17 +244,55 @@ const handleFileUpload = async (event: Event) => {
     return
   }
 
-  // TODO: Implement actual file upload to Laravel backend
-  // For now, we'll create a data URL for preview
-  const reader = new FileReader()
-  reader.onload = (e) => {
-    const imageUrl = e.target?.result as string
-    insertMarkdown('![', `](${imageUrl})`, file.name)
-  }
-  reader.readAsDataURL(file)
-
   // Reset file input
   target.value = ''
+
+  isUploading.value = true
+  try {
+    const url = await uploadAttachment(file)
+    insertMarkdown('![', `](${url})`, file.name)
+  } catch (error) {
+    console.error('[MarkdownEditor] Attachment upload failed:', error)
+    alert('File upload failed. Please try again.')
+  } finally {
+    isUploading.value = false
+  }
+}
+
+const isUploading = ref(false)
+
+// Store the attachment on the configured disk/directory through the forms upload route
+const uploadAttachment = async (file: File): Promise<string> => {
+  const formData = new FormData()
+  formData.append('file', file)
+  formData.append('disk', props.fileAttachmentsDisk)
+  formData.append('directory', props.fileAttachmentsDirectory)
+  formData.append('visibility', 'public')
+  formData.append('maxSize', String(props.fileAttachmentsMaxSize))
+  props.fileAttachmentsAcceptedFileTypes.forEach(type => formData.append('acceptedFileTypes[]', type))
+  formData.append('withUrl', '1')
+
+  const response = await fetch('/uploads', {
+    method: 'POST',
+    headers: {
+      Accept: 'application/json',
+      'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+      'X-Requested-With': 'XMLHttpRequest',
+    },
+    credentials: 'include',
+    body: formData,
+  })
+
+  if (!response.ok) {
+    throw new Error(`Upload failed with status ${response.status}`)
+  }
+
+  const result = await response.json()
+  if (!result?.url) {
+    throw new Error('Upload response did not include a URL')
+  }
+
+  return result.url
 }
 
 // Helper to get Lucide icon component by name
@@ -283,7 +321,7 @@ const getIconColorClass = (color?: string) => {
     'destructive': 'text-destructive',
   }
 
-  return colorMap[color] || `text-${color}`
+  return colorMap[color] || 'text-muted-foreground'
 }
 
 const handleInput = (event: Event) => {
@@ -361,7 +399,7 @@ const togglePreview = () => {
             variant="ghost"
             size="sm"
             class="h-8 w-8 p-0"
-            :disabled="disabled || (button === 'attachFiles' && !fileAttachmentsEnabled)"
+            :disabled="disabled || (button === 'attachFiles' && (!fileAttachmentsEnabled || isUploading))"
             :title="button"
             @click="handleToolbarAction(button)"
           >

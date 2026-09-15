@@ -1,5 +1,5 @@
 <template>
-    <form ref="formRef" :class="containerClass" @submit.prevent>
+    <component :is="as" ref="formRef" :class="containerClass" @submit.prevent>
         <template v-for="(component, index) in internalSchema" :key="component.name || component.id || index">
             <!-- Group consecutive actions together (only render on first action in group) -->
             <div v-if="isAction(component) && !isPreviousItemAction(index) && isNextItemAction(index)" class="flex flex-wrap gap-2 items-start">
@@ -34,8 +34,13 @@
                 @update:model-value="(value) => handleComponentUpdate(component, value)"
             />
         </template>
-    </form>
+    </component>
 </template>
+
+<script lang="ts">
+// Module-level (shared by all instances): gives every Form a unique 'laravilt:form-scope' id
+let formScopeCounter = 0
+</script>
 
 <script setup lang="ts">
 import { defineAsyncComponent, onMounted, onUnmounted, computed, h, ref, watch, provide, inject, nextTick } from 'vue'
@@ -52,7 +57,11 @@ import CheckboxList from './fields/CheckboxList.vue'
 import Select from './fields/Select.vue'
 import Hidden from './fields/Hidden.vue'
 
-const formRef = ref<HTMLFormElement | null>(null)
+// Unique id of this form root, provided as 'laravilt:form-scope' (see ActionButton's action-updated-data event)
+const formScope = `laravilt-form-${++formScopeCounter}`
+
+// A <form>, or a <div> when nested inside another form (e.g. tab content) since nested forms are invalid HTML
+const formRef = ref<HTMLElement | null>(null)
 const internalFormData = ref<Record<string, any>>({})
 
 // Local validation errors for client-side validation
@@ -87,9 +96,11 @@ const props = withDefaults(defineProps<{
     disabled?: boolean
     formController?: string
     formMethod?: string
+    as?: 'form' | 'div'
 }>(), {
     formController: undefined,
     formMethod: 'getSchema',
+    as: 'form',
 })
 
 const emit = defineEmits<{
@@ -164,6 +175,12 @@ const initializeFormData = () => {
 
 // Handle action-updated data events
 const handleActionUpdatedData = (event: CustomEvent) => {
+    // Ignore data from an action that belongs to another form (unscoped events still apply)
+    const eventScope = (event as any).laraviltFormScope;
+    if (eventScope && eventScope !== formScope) {
+        return;
+    }
+
     const updatedData = event.detail;
 
     if (updatedData && typeof updatedData === 'object') {
@@ -197,10 +214,16 @@ watch(internalSchema, () => {
     // The reactive update already handles option changes
 }, { deep: true })
 
+// Whether the last modelValue had data. A parent that passes a fresh `{}` on every render must not
+// wipe user input, so only a genuine change from data to empty resets the form.
+let modelHadData = false
+
 // Watch for external modelValue changes and merge them
 // Use immediate: true to handle initial value properly (important for edit/view modals)
 watch(() => props.modelValue, (newValue) => {
-    if (newValue && Object.keys(newValue).length > 0) {
+    const hasData = !!newValue && Object.keys(newValue).length > 0
+
+    if (hasData) {
         // Get defaults from schema
         const defaults = extractFieldDefaults(internalSchema.value)
         // Merge defaults with new value - new value takes precedence
@@ -208,7 +231,14 @@ watch(() => props.modelValue, (newValue) => {
             ...defaults,
             ...newValue
         }
+    } else if (modelHadData) {
+        // The parent cleared the model (e.g. after submit): reset to the schema defaults
+        internalFormData.value = { ...extractFieldDefaults(internalSchema.value) }
+        localErrors.value = {}
+        emit('update:modelValue', internalFormData.value)
     }
+
+    modelHadData = hasData
 }, { deep: true, immediate: true })
 
 // Handle component update events
@@ -293,6 +323,9 @@ const findFieldInSchema = (schema: any[], fieldName: string): any => {
     return null
 }
 
+// Sequence number of the latest reactive request; older responses that finish later are ignored
+let reactiveRequestSeq = 0
+
 // Trigger reactive field update
 const triggerReactiveFieldUpdate = async (fieldName: string, field: any) => {
     // Skip if no form controller is configured
@@ -300,6 +333,8 @@ const triggerReactiveFieldUpdate = async (fieldName: string, field: any) => {
         console.warn('[Form] No formController configured, skipping reactive field update')
         return
     }
+
+    const requestId = ++reactiveRequestSeq
 
     const debounceMs = field.isLazy
         ? (field.liveDebounce || 500)
@@ -328,6 +363,11 @@ const triggerReactiveFieldUpdate = async (fieldName: string, field: any) => {
         }
 
         const result = await response.json()
+
+        // A newer reactive request started while this one was in flight; its response wins
+        if (requestId !== reactiveRequestSeq) {
+            return
+        }
 
         if (result.schema) {
             updateSchema(result.schema)
@@ -424,7 +464,7 @@ const validateForm = () => {
     }
 
     // Also run HTML5 validation for native form elements
-    if (formRef.value) {
+    if (formRef.value instanceof HTMLFormElement) {
         const isHtml5Valid = formRef.value.checkValidity()
         if (!isHtml5Valid) {
             formRef.value.reportValidity()
@@ -476,6 +516,8 @@ provide('formController', props.formController)
 provide('formMethod', props.formMethod)
 // Override the errors provided by ErrorProvider with our merged errors (local + server)
 provide('errors', errors)
+// Scope for action-updated-data events: actions inside this form only update this form
+provide('laravilt:form-scope', formScope)
 
 // Expose getFormData, validateForm, and clearValidationErrors to parent components via template ref
 defineExpose({

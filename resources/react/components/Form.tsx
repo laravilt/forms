@@ -1,8 +1,8 @@
 import ActionButton from '@laravilt/actions/components/ActionButton';
-import { ErrorsContext, SchemaContext, useErrors, type SchemaContextValue } from '@laravilt/support/composables/contexts';
+import { createFormScopeId, ErrorsContext, FormScopeContext, SchemaContext, useErrors, type SchemaContextValue } from '@laravilt/support/composables/contexts';
 import { useLatest } from '@laravilt/support/composables/hooks';
 import { resolveComponent } from '@laravilt/support/composables/registry';
-import { Fragment, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState, type Ref } from 'react';
+import { Fragment, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState, type FormEvent, type Ref } from 'react';
 
 export interface FormHandle {
     getFormData(): Record<string, any>;
@@ -17,6 +17,8 @@ export interface FormProps {
     disabled?: boolean;
     formController?: string;
     formMethod?: string;
+    /** Render a <div> instead of a <form> when nested inside another form (nested forms are invalid HTML). */
+    as?: 'form' | 'div';
     onUpdateModelValue?: (value: Record<string, any>) => void;
     onUpdateSchema?: (value: any[]) => void;
     ref?: Ref<FormHandle>;
@@ -171,10 +173,17 @@ export default function Form({
     disabled,
     formController = undefined,
     formMethod = 'getSchema',
+    as = 'form',
     onUpdateModelValue,
     ref,
 }: FormProps) {
-    const formRef = useRef<HTMLFormElement | null>(null);
+    // Unique id of this form root (see ActionButton's action-updated-data event)
+    const [formScope] = useState(() => createFormScopeId('form'));
+
+    const formRef = useRef<HTMLElement | null>(null);
+    const setFormElement = useCallback((element: HTMLElement | null) => {
+        formRef.current = element;
+    }, []);
 
     // Make schema internally reactive so it can be updated by reactive fields
     const [internalSchema, setInternalSchemaState] = useState<any[]>(schema);
@@ -217,11 +226,16 @@ export default function Form({
 
     // Watch for external modelValue changes and merge them
     const previousModelValue = useRef(modelValue);
+    // Whether the last modelValue had data. A parent that passes a fresh `{}` on every render must not
+    // wipe user input, so only a genuine change from data to empty resets the form.
+    const modelHadData = useRef(!!modelValue && Object.keys(modelValue).length > 0);
     useEffect(() => {
         if (previousModelValue.current === modelValue) return;
         previousModelValue.current = modelValue;
 
-        if (modelValue && Object.keys(modelValue).length > 0) {
+        const hasData = !!modelValue && Object.keys(modelValue).length > 0;
+
+        if (hasData) {
             // Get defaults from schema
             const defaults = extractFieldDefaults(internalSchemaRef.current);
             // Merge defaults with new value - new value takes precedence
@@ -229,7 +243,15 @@ export default function Form({
                 ...defaults,
                 ...modelValue,
             });
+        } else if (modelHadData.current) {
+            // The parent cleared the model (e.g. after submit): reset to the schema defaults
+            setInternalFormData({ ...extractFieldDefaults(internalSchemaRef.current) });
+            setLocalErrors({});
+            emitModelValue(internalFormDataRef.current);
         }
+
+        modelHadData.current = hasData;
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [modelValue]);
 
     // Initialize on mount + listen for action-updated-data events from ActionButton
@@ -245,6 +267,12 @@ export default function Form({
 
         // Handle action-updated data events
         const handleActionUpdatedData = (event: Event) => {
+            // Ignore data from an action that belongs to another form (unscoped events still apply)
+            const eventScope = (event as any).laraviltFormScope;
+            if (eventScope && eventScope !== formScope) {
+                return;
+            }
+
             const updatedData = (event as CustomEvent).detail;
 
             if (updatedData && typeof updatedData === 'object') {
@@ -441,7 +469,7 @@ export default function Form({
         }
 
         // Also run HTML5 validation for native form elements
-        if (formRef.current) {
+        if (formRef.current instanceof HTMLFormElement) {
             const isHtml5Valid = formRef.current.checkValidity();
             if (!isHtml5Valid) {
                 formRef.current.reportValidity();
@@ -521,16 +549,23 @@ export default function Form({
         return Array.isArray(error) ? error[0] : error;
     };
 
+    const Container = as === 'div' ? 'div' : 'form';
+
     // Wrapper for form actions that can collect form data
     const renderAction = (action: any, key: string | number) => (
         <ActionButton key={key} {...({ ...action, getFormData } as any)} />
     );
 
     return (
+        <FormScopeContext.Provider value={formScope}>
         <SchemaContext.Provider value={schemaContext}>
             {/* Override the errors provided by ErrorProvider with our merged errors (local + server) */}
             <ErrorsContext.Provider value={errors}>
-                <form ref={formRef} className={containerClass} onSubmit={(e) => e.preventDefault()}>
+                <Container
+                    ref={setFormElement}
+                    className={containerClass}
+                    onSubmit={(e: FormEvent<HTMLElement>) => e.preventDefault()}
+                >
                     {(Array.isArray(internalSchema) ? internalSchema : []).map((component: any, index: number) => {
                         const key = component.name || component.id || index;
 
@@ -574,8 +609,9 @@ export default function Form({
 
                         return <Fragment key={key} />;
                     })}
-                </form>
+                </Container>
             </ErrorsContext.Provider>
         </SchemaContext.Provider>
+        </FormScopeContext.Provider>
     );
 }

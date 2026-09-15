@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
+import { gridColsClass } from '../../lib/gridClasses';
 import { useLatest } from '@laravilt/support/composables/hooks';
 import { resolveIcon } from '@laravilt/support/lib/icons';
 
@@ -145,7 +146,7 @@ const getIconColorClass = (color?: string): string => {
         destructive: 'text-destructive',
     };
 
-    return colorMap[color] || `text-${color}`;
+    return colorMap[color] || 'text-muted-foreground';
 };
 
 // Generate unique ID
@@ -430,18 +431,14 @@ export default function Builder({
     const blockPickerGridClass = (() => {
         const cols = blockPickerColumns;
         if (typeof cols === 'number') {
-            return `grid-cols-${cols}`;
+            return gridColsClass(cols);
         }
         // Handle responsive columns
         const classes: string[] = [];
         Object.entries(cols).forEach(([breakpoint, count]) => {
-            if (breakpoint === 'default') {
-                classes.push(`grid-cols-${count}`);
-            } else {
-                classes.push(`${breakpoint}:grid-cols-${count}`);
-            }
+            classes.push(gridColsClass(count, breakpoint));
         });
-        return classes.join(' ');
+        return classes.filter(Boolean).join(' ');
     })();
 
     // Block picker max width class

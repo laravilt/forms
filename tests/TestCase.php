@@ -29,5 +29,8 @@ class TestCase extends Orchestra
     {
         // Setup environment for testing
         config()->set('database.default', 'testing');
+
+        // The package routes run in the web middleware group, which encrypts cookies
+        config()->set('app.key', 'base64:'.base64_encode(str_repeat('l', 32)));
     }
 }

@@ -26,12 +26,6 @@
         <div class="flex items-start justify-between gap-2">
             <Label :for="name" class="flex flex-col items-start space-y-1 text-start">
                 <span>{{ label }}</span>
-                <span
-                    v-if="!hasError && helperText"
-                    class="text-sm font-normal text-muted-foreground"
-                >
-                    {{ helperText }}
-                </span>
             </Label>
             <Switch
                 :id="name"

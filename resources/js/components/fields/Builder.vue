@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { gridColsClass } from '../../lib/gridClasses'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
@@ -153,7 +154,7 @@ const getIconColorClass = (color?: string) => {
     destructive: 'text-destructive',
   }
 
-  return colorMap[color] || `text-${color}`
+  return colorMap[color] || 'text-muted-foreground'
 }
 
 // Generate unique ID
@@ -229,8 +230,18 @@ const addBlock = (blockType: string) => {
   }
 }
 
+// Check if a block can be cloned (same limits as adding one)
+const canCloneBlock = (index: number): boolean => {
+  const item = internalItems.value[index]
+  if (!item) return false
+  if (props.maxItems && internalItems.value.length >= props.maxItems) return false
+  return canAddBlock(item.type)
+}
+
 // Clone block
 const cloneBlock = (index: number) => {
+  if (!canCloneBlock(index)) return
+
   const item = internalItems.value[index]
   const clonedItem: BlockItem = {
     id: generateId(),
@@ -326,18 +337,14 @@ const updateFieldData = (itemId: string, fieldName: string, value: any) => {
 const blockPickerGridClass = computed(() => {
   const cols = props.blockPickerColumns
   if (typeof cols === 'number') {
-    return `grid-cols-${cols}`
+    return gridColsClass(cols)
   }
   // Handle responsive columns
   const classes: string[] = []
   Object.entries(cols).forEach(([breakpoint, count]) => {
-    if (breakpoint === 'default') {
-      classes.push(`grid-cols-${count}`)
-    } else {
-      classes.push(`${breakpoint}:grid-cols-${count}`)
-    }
+    classes.push(gridColsClass(count, breakpoint))
   })
-  return classes.join(' ')
+  return classes.filter(Boolean).join(' ')
 })
 
 // Block picker max width class
@@ -589,7 +596,7 @@ const getComponent = (componentName: string): any | null => {
                   variant="ghost"
                   size="sm"
                   class="h-8 w-8 p-0"
-                  :disabled="disabled"
+                  :disabled="disabled || !canCloneBlock(index)"
                   @click="cloneBlock(index)"
                 >
                   <Copy class="h-4 w-4" />

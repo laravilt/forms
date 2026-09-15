@@ -111,7 +111,7 @@ const gridColumnsClass = computed(() => {
     11: 'grid-cols-11',
     12: 'grid-cols-12',
   }
-  return columnMap[props.columns] || `grid-cols-${props.columns}`
+  return columnMap[props.columns] || ''
 })
 
 // Get column span class for a field
@@ -135,7 +135,7 @@ const getColumnSpanClass = (field: FieldSchema) => {
     11: 'col-span-11',
     12: 'col-span-12',
   }
-  return spanMap[colSpan] || `col-span-${colSpan}`
+  return spanMap[colSpan] || ''
 }
 
 const emit = defineEmits<{
@@ -196,7 +196,8 @@ watch(() => props.value ?? props.modelValue, (newValue, oldValue) => {
   }
 }, { immediate: true })
 
-const openItems = ref<Set<number>>(new Set())
+// Keyed by stable item id so expanded state follows the item through remove/clone/reorder
+const openItems = ref<Set<string>>(new Set())
 const itemsContainer = ref<HTMLElement>()
 let sortableInstance: Sortable | null = null
 
@@ -316,7 +317,7 @@ const getIconColorClass = (color?: string) => {
     'destructive': 'text-destructive',
   }
 
-  return colorMap[color] || `text-${color}`
+  return colorMap[color] || 'text-muted-foreground'
 }
 
 // Check if we can add more items
@@ -347,14 +348,15 @@ const addItem = () => {
     })
 
     const newValue = [...internalItems.value, newItem]
+    const newId = generateItemId()
     internalItems.value = newValue
-    itemIds.value.push(generateItemId())
+    itemIds.value.push(newId)
     emit('update:modelValue', newValue)
     emit('update:value', newValue)
 
     // Auto-expand new item if collapsible
     if (props.collapsible) {
-      openItems.value.add(internalItems.value.length - 1)
+      openItems.value.add(newId)
     }
   } finally {
     setTimeout(() => {
@@ -373,10 +375,10 @@ const removeItem = (index: number) => {
     const newValue = [...internalItems.value]
     newValue.splice(index, 1)
     internalItems.value = newValue
-    itemIds.value.splice(index, 1)
+    const [removedId] = itemIds.value.splice(index, 1)
     emit('update:modelValue', newValue)
     emit('update:value', newValue)
-    openItems.value.delete(index)
+    if (removedId) openItems.value.delete(removedId)
   } finally {
     setTimeout(() => {
       isUpdating.value = false
@@ -396,13 +398,14 @@ const cloneItem = (index: number) => {
     const newValue = [...internalItems.value]
     newValue.splice(index + 1, 0, clonedItem)
     internalItems.value = newValue
-    itemIds.value.splice(index + 1, 0, generateItemId())
+    const clonedId = generateItemId()
+    itemIds.value.splice(index + 1, 0, clonedId)
     emit('update:modelValue', newValue)
     emit('update:value', newValue)
 
     // Auto-expand cloned item if collapsible
     if (props.collapsible) {
-      openItems.value.add(index + 1)
+      openItems.value.add(clonedId)
     }
   } finally {
     setTimeout(() => {
@@ -412,15 +415,17 @@ const cloneItem = (index: number) => {
 }
 
 const toggleItem = (index: number) => {
-  if (openItems.value.has(index)) {
-    openItems.value.delete(index)
+  const id = itemIds.value[index]
+  if (!id) return
+  if (openItems.value.has(id)) {
+    openItems.value.delete(id)
   } else {
-    openItems.value.add(index)
+    openItems.value.add(id)
   }
 }
 
 const isOpen = (index: number) => {
-  return !props.collapsible || openItems.value.has(index)
+  return !props.collapsible || openItems.value.has(itemIds.value[index])
 }
 
 

@@ -61,13 +61,17 @@ const updateRating = (value: number) => {
   emit('update:value', value)
 }
 
-const handleClick = (index: number, half: boolean = false) => {
+const handleClick = (index: number, event: MouseEvent) => {
   if (props.disabled || props.readonly) return
 
   let newRating = index + 1
 
-  if (props.allowHalf && half) {
-    newRating = index + 0.5
+  // Same half detection as the hover preview; keyboard clicks (detail 0) have no pointer position
+  if (props.allowHalf && event.detail > 0) {
+    const rect = (event.currentTarget as HTMLElement).getBoundingClientRect()
+    if (event.clientX - rect.left < rect.width / 2) {
+      newRating = index + 0.5
+    }
   }
 
   // Toggle off if clicking the same rating
@@ -110,19 +114,22 @@ const fillColor = computed(() => {
   if (props.color) return props.color
   return '#facc15' // Default yellow color
 })
+
+// There is no single labelable control, so the label names the button group
+const labelId = computed(() => (props.label && props.name ? `${props.name}-label` : undefined))
 </script>
 
 <template>
   <div class="w-full space-y-2">
     <!-- Label -->
-    <label
+    <span
       v-if="label"
-      :for="name"
+      :id="labelId"
       class="text-sm font-medium block text-foreground"
     >
       {{ label }}
       <span v-if="required" class="text-destructive ms-0.5">*</span>
-    </label>
+    </span>
 
     <!-- Hidden input for form submission -->
     <input
@@ -133,12 +140,14 @@ const fillColor = computed(() => {
     />
 
     <!-- Rating Input -->
-    <div class="flex items-center gap-1">
+    <div class="flex items-center gap-1" role="group" :aria-labelledby="labelId">
       <button
         v-for="index in max"
         :key="index"
         type="button"
-        @click="handleClick(index - 1)"
+        :aria-label="`Rate ${index} of ${max}`"
+        :aria-pressed="Math.ceil(rating) === index"
+        @click="(e) => handleClick(index - 1, e)"
         @mousemove="(e) => handleMouseMove(index - 1, e)"
         @mouseleave="handleMouseLeave"
         :disabled="disabled"

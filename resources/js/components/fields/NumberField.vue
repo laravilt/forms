@@ -56,6 +56,8 @@ watch(() => props.modelValue ?? props.value, (newValue) => {
 }, { immediate: true })
 
 const updateValue = (value: number | undefined) => {
+  // radix-vue's NumberField has no readonly mode, so ignore its keyboard/wheel steps here
+  if (props.readonly) return
   numberValue.value = value
   emit('update:modelValue', value ?? null)
   emit('update:value', value ?? null)
@@ -101,7 +103,7 @@ const updateValue = (value: number | undefined) => {
           variant="outline"
           size="icon"
           class="h-10 w-10 rounded-e-none border-e-0"
-          :disabled="disabled"
+          :disabled="disabled || readonly"
         >
           <Minus class="h-4 w-4" />
         </Button>
@@ -117,6 +119,8 @@ const updateValue = (value: number | undefined) => {
         </span>
 
         <NumberFieldInput
+          :id="name"
+          :readonly="readonly"
           class="flex h-10 w-full rounded-none border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 text-center"
           :class="{
             'ps-8': prefix,
@@ -139,7 +143,7 @@ const updateValue = (value: number | undefined) => {
           variant="outline"
           size="icon"
           class="h-10 w-10 rounded-s-none border-s-0"
-          :disabled="disabled"
+          :disabled="disabled || readonly"
         >
           <Plus class="h-4 w-4" />
         </Button>
