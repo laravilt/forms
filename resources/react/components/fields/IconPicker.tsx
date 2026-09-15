@@ -206,23 +206,24 @@ export default function IconPicker({
     const SelectedIconComponent = resolveIcon(selectedIcon || undefined);
 
     // Watch for external value changes
-    const previousModelValue = useRef(modelValue);
+    const externalValue = modelValue ?? value;
+    const previousExternalValue = useRef(externalValue);
     useEffect(() => {
-        if (previousModelValue.current === modelValue) return;
-        previousModelValue.current = modelValue;
+        if (previousExternalValue.current === externalValue) return;
+        previousExternalValue.current = externalValue;
 
         if (multiple) {
-            if (Array.isArray(modelValue)) {
-                setSelectedIcons([...modelValue]);
-            } else if (modelValue) {
-                setSelectedIcons([modelValue]);
+            if (Array.isArray(externalValue)) {
+                setSelectedIcons([...externalValue]);
+            } else if (externalValue) {
+                setSelectedIcons([externalValue]);
             } else {
                 setSelectedIcons([]);
             }
         } else {
-            setSelectedIcon(Array.isArray(modelValue) ? modelValue[0] || null : modelValue || null);
+            setSelectedIcon(Array.isArray(externalValue) ? externalValue[0] || null : externalValue || null);
         }
-    }, [modelValue, multiple]);
+    }, [externalValue, multiple]);
 
     const PrefixIcon = resolveIcon(prefixIcon);
     const SuffixIcon = resolveIcon(suffixIcon);

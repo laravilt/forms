@@ -15,6 +15,10 @@ const getComponentProps = (component: any) => {
     return rest;
 };
 
+// Schema components (Tabs, Section, Grid) take the whole model, not a single field value
+const schemaComponentTypes = ['tabs', 'section', 'grid'];
+const isSchemaComponent = (component: any) => schemaComponentTypes.includes(component.component);
+
 const toLaraviltName = (name: any) => {
     if (!name) return;
     return 'laravilt-' + String(name).replaceAll('_', '-');
@@ -56,6 +60,11 @@ export default function Grid({ columns, schema, modelValue, disabled, onUpdateMo
         onUpdateModelValue?.(newValue);
     };
 
+    // Nested schema components emit the whole (merged) model
+    const updateSchemaValue = (value: Record<string, any>) => {
+        onUpdateModelValue?.({ ...(modelValue || {}), ...(value || {}) });
+    };
+
     const gridClasses = (() => {
         const classes = ['grid', 'gap-6'];
 
@@ -89,10 +98,12 @@ export default function Grid({ columns, schema, modelValue, disabled, onUpdateMo
                         {Component ? (
                             <Component
                                 {...getComponentProps(child)}
-                                value={modelValue?.[child.name]}
-                                modelValue={modelValue?.[child.name]}
+                                value={isSchemaComponent(child) ? undefined : modelValue?.[child.name]}
+                                modelValue={isSchemaComponent(child) ? modelValue : modelValue?.[child.name]}
                                 disabled={disabled || child.disabled}
-                                onUpdateModelValue={(value: any) => updateValue(child.name, value)}
+                                onUpdateModelValue={(value: any) =>
+                                    isSchemaComponent(child) ? updateSchemaValue(value) : updateValue(child.name, value)
+                                }
                             />
                         ) : (
                             <div />

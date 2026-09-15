@@ -297,6 +297,9 @@ export default function Form({
         }
     }, [internalSchema]);
 
+    // Sequence number of the latest reactive request; older responses that finish later are ignored
+    const reactiveRequestSeq = useRef(0);
+
     // Trigger reactive field update
     const triggerReactiveFieldUpdate = async (fieldName: string, _field: any) => {
         const { formController: controller, formMethod: method } = latest.current;
@@ -306,6 +309,8 @@ export default function Form({
             console.warn('[Form] No formController configured, skipping reactive field update');
             return;
         }
+
+        const requestId = ++reactiveRequestSeq.current;
 
         // TODO (from Vue): Implement debouncing if needed
         try {
@@ -330,6 +335,11 @@ export default function Form({
             }
 
             const result = await response.json();
+
+            // A newer reactive request started while this one was in flight; its response wins
+            if (requestId !== reactiveRequestSeq.current) {
+                return;
+            }
 
             if (result.schema) {
                 updateSchema(result.schema);

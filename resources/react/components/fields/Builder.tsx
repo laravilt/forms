@@ -317,8 +317,18 @@ export default function Builder({
         }
     };
 
+    // Check if a block can be cloned (same limits as adding one)
+    const canCloneBlock = (index: number): boolean => {
+        const item = internalItems[index];
+        if (!item) return false;
+        if (maxItems && internalItems.length >= maxItems) return false;
+        return canAddBlock(item.type);
+    };
+
     // Clone block
     const cloneBlock = (index: number) => {
+        if (!canCloneBlock(index)) return;
+
         const item = internalItemsRef.current[index];
         const clonedItem: BlockItem = {
             id: generateId(),
@@ -609,7 +619,7 @@ export default function Builder({
                                                     variant="ghost"
                                                     size="sm"
                                                     className="h-8 w-8 p-0"
-                                                    disabled={disabled}
+                                                    disabled={disabled || !canCloneBlock(index)}
                                                     onClick={() => cloneBlock(index)}
                                                 >
                                                     <Copy className="h-4 w-4" />

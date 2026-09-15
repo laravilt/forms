@@ -62,6 +62,10 @@ export default function PhoneInput({
 }: PhoneInputProps) {
     const [initial] = useState(() => parseInitial(modelValue || value || ''));
     const [selectedCountryCode, setSelectedCountryCode] = useState(initial.code);
+    // Several countries share a dial code (US and CA are both +1), so also track the chosen country
+    const [selectedCountry, setSelectedCountry] = useState<string | undefined>(
+        () => countryCodes.find((c) => c.code === initial.code)?.country,
+    );
     const [phoneNumber, setPhoneNumber] = useState(initial.phone);
     const [isCountrySelectorOpen, setIsCountrySelectorOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
@@ -94,7 +98,14 @@ export default function PhoneInput({
         }
         const match = incoming.match(/^(\+\d+)\s*(.*)$/);
         if (match) {
-            setSelectedCountryCode(match[1]);
+            const code = match[1];
+            setSelectedCountryCode(code);
+            // Keep the chosen country if it still matches the dial code
+            setSelectedCountry((current) =>
+                countryCodes.find((c) => c.country === current)?.code === code
+                    ? current
+                    : countryCodes.find((c) => c.code === code)?.country,
+            );
             setPhoneNumber(match[2]);
         } else {
             setPhoneNumber(incoming);
@@ -110,8 +121,9 @@ export default function PhoneInput({
 
     const emitters = useLatest({ onUpdateModelValue, onUpdateValue, selectedCountryCode });
 
-    const updateCountryCode = (code: string) => {
+    const updateCountryCode = (code: string, country: string) => {
         setSelectedCountryCode(code);
+        setSelectedCountry(country);
         setIsCountrySelectorOpen(false);
         setSearchQuery('');
         // Emit the updated value
@@ -150,7 +162,7 @@ export default function PhoneInput({
                             aria-expanded={isCountrySelectorOpen}
                             className="h-full border-0 bg-transparent hover:bg-accent focus:ring-0 focus-visible:ring-0 rounded-r-none px-2 gap-1"
                         >
-                            <span className="text-base">{countryCodes.find((c) => c.code === selectedCountryCode)?.flag}</span>
+                            <span className="text-base">{countryCodes.find((c) => c.country === selectedCountry)?.flag}</span>
                             <span className="text-sm font-medium">{selectedCountryCode}</span>
                             <ChevronsUpDown className="h-3 w-3 opacity-50" />
                         </Button>
@@ -182,14 +194,14 @@ export default function PhoneInput({
                                             type="button"
                                             className={cn(
                                                 'w-full flex items-center gap-2 px-3 py-2 hover:bg-accent transition-colors text-left',
-                                                { 'bg-accent': selectedCountryCode === country.code },
+                                                { 'bg-accent': selectedCountry === country.country },
                                             )}
-                                            onClick={() => updateCountryCode(country.code)}
+                                            onClick={() => updateCountryCode(country.code, country.country)}
                                         >
                                             <Check
                                                 className={cn('h-4 w-4', {
-                                                    'opacity-100': selectedCountryCode === country.code,
-                                                    'opacity-0': selectedCountryCode !== country.code,
+                                                    'opacity-100': selectedCountry === country.country,
+                                                    'opacity-0': selectedCountry !== country.country,
                                                 })}
                                             />
                                             <span className="text-lg">{country.flag}</span>

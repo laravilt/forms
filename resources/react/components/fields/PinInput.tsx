@@ -1,6 +1,6 @@
 import { cn } from '@/lib/utils';
 import { OTPInput, REGEXP_ONLY_CHARS, REGEXP_ONLY_DIGITS, REGEXP_ONLY_DIGITS_AND_CHARS } from 'input-otp';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 export interface PinInputProps {
     name?: string;
@@ -61,6 +61,15 @@ export default function PinInput({
 }: PinInputProps) {
     const [pinValue, setPinValue] = useState<string[]>(() => modelValue?.split('') || value?.split('') || []);
 
+    // Watch for external value changes (e.g., when editing)
+    const incoming = modelValue ?? value;
+    const previousIncoming = useRef(incoming);
+    useEffect(() => {
+        if (previousIncoming.current === incoming) return;
+        previousIncoming.current = incoming;
+        setPinValue(incoming?.split('') ?? []);
+    }, [incoming]);
+
     const updateValue = (next: string[]) => {
         setPinValue(next);
         const stringValue = next.join('');
@@ -87,6 +96,7 @@ export default function PinInput({
             {/* Pin Input */}
             <div className={cn('flex py-2', alignment.container)}>
                 <OTPInput
+                    id={name}
                     maxLength={length}
                     value={pinValue.join('')}
                     onChange={(next: string) => updateValue(next.split(''))}

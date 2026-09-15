@@ -76,7 +76,6 @@ export default function Toggle({
             <div className="flex items-start justify-between gap-2">
                 <Label htmlFor={name} className="flex flex-col items-start space-y-1 text-start">
                     <span>{label}</span>
-                    {!hasError && helperText && <span className="text-sm font-normal text-muted-foreground">{helperText}</span>}
                 </Label>
                 <Switch
                     id={name}

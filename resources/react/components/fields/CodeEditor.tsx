@@ -167,6 +167,7 @@ export default function CodeEditor({
     readOnly = false,
     disabled = false,
     placeholder = '',
+    lineNumbers = true,
     prefixIcon,
     suffixIcon,
     prefixIconColor,
@@ -176,6 +177,9 @@ export default function CodeEditor({
 }: CodeEditorProps) {
     const externalValue = modelValue ?? value;
 
+    // The CodeMirror container is not labelable, so the label is referenced via aria-labelledby
+    const labelId = label && name ? `${name}-label` : undefined;
+
     // Internal value tracking
     const [internalValue, setInternalValue] = useState<string>(modelValue ?? value ?? '');
 
@@ -183,7 +187,18 @@ export default function CodeEditor({
     const editorView = useRef<EditorView | null>(null);
 
     // CodeMirror callbacks are created once per editor, so they read the latest props through this ref.
-    const latest = useLatest({ language, theme, readOnly, disabled, placeholder, externalValue, onUpdateModelValue, onUpdateValue });
+    const latest = useLatest({
+        language,
+        theme,
+        readOnly,
+        disabled,
+        placeholder,
+        lineNumbers,
+        labelId,
+        externalValue,
+        onUpdateModelValue,
+        onUpdateValue,
+    });
 
     // Computed language label
     const languageLabel = LANGUAGE_LABELS[language.toLowerCase()] || language.toUpperCase();
@@ -223,6 +238,16 @@ export default function CodeEditor({
         // Add placeholder support
         if (current.placeholder) {
             extensions.push(EditorView.contentAttributes.of({ 'aria-placeholder': current.placeholder }));
+        }
+
+        // Associate the label with the editable content
+        if (current.labelId) {
+            extensions.push(EditorView.contentAttributes.of({ 'aria-labelledby': current.labelId }));
+        }
+
+        // basicSetup always includes the line-number gutter; hide it when disabled
+        if (current.lineNumbers === false) {
+            extensions.push(EditorView.theme({ '.cm-gutters': { display: 'none' } }));
         }
 
         return EditorState.create({
@@ -307,7 +332,7 @@ export default function CodeEditor({
 
             {/* Label */}
             {label && (
-                <label htmlFor={name} className="text-sm font-medium block text-foreground">
+                <label id={labelId} className="text-sm font-medium block text-foreground">
                     {label}{' '}
                     {required && <span className="text-destructive ms-0.5">*</span>}
                 </label>

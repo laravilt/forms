@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils';
 import { useLocalization } from '@laravilt/support/composables/useLocalization';
 import { resolveIcon } from '@laravilt/support/lib/icons';
 import { GripVertical, Plus, X } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 interface KeyValuePair {
     key: string;
@@ -35,6 +35,10 @@ export interface KeyValueProps {
 }
 
 const EMPTY_MODEL: Record<string, string> = {};
+
+// Convert the model to array format for easier manipulation
+const toPairs = (model: KeyValueModel | null | undefined): KeyValuePair[] =>
+    Array.isArray(model) ? model : Object.entries(model || {}).map(([key, value]) => ({ key, value }));
 
 // Helper to get Tailwind color classes for icons
 const getIconColorClass = (color?: string) => {
@@ -81,26 +85,36 @@ export default function KeyValue({
     const translatedValueLabel = valueLabel !== 'Value' ? valueLabel : trans('key_value.value_label');
     const translatedAddButtonLabel = addButtonLabel !== 'Add Item' ? addButtonLabel : trans('key_value.add_button_label');
 
-    // Convert modelValue to array format for easier manipulation
-    const [pairs, setPairs] = useState<KeyValuePair[]>(() =>
-        Array.isArray(modelValue) ? modelValue : Object.entries(modelValue).map(([key, value]) => ({ key, value })),
-    );
+    const [pairs, setPairs] = useState<KeyValuePair[]>(() => toPairs(modelValue));
+
+    // Re-sync on external changes (reset, reactive update). Our own emits echo back unchanged and are
+    // skipped, so in-progress rows (e.g. one with an empty key) are not dropped.
+    const lastEmitted = useRef<KeyValueModel>(modelValue);
+    useEffect(() => {
+        if (modelValue === lastEmitted.current) return;
+        lastEmitted.current = modelValue;
+        setPairs(toPairs(modelValue));
+    }, [modelValue]);
+
+    // Emit as object if original was object, array otherwise
+    const normalize = (nextPairs: KeyValuePair[]): KeyValueModel => {
+        if (Array.isArray(modelValue)) {
+            return nextPairs;
+        }
+        const obj: Record<string, string> = {};
+        nextPairs.forEach((pair) => {
+            if (pair.key) {
+                obj[pair.key] = pair.value;
+            }
+        });
+        return obj;
+    };
 
     const emitUpdate = (nextPairs: KeyValuePair[]) => {
-        // Emit as object if original was object, array otherwise
-        if (Array.isArray(modelValue)) {
-            onUpdateModelValue?.(nextPairs);
-            onUpdateValue?.(nextPairs);
-        } else {
-            const obj: Record<string, string> = {};
-            nextPairs.forEach((pair) => {
-                if (pair.key) {
-                    obj[pair.key] = pair.value;
-                }
-            });
-            onUpdateModelValue?.(obj);
-            onUpdateValue?.(obj);
-        }
+        const next = normalize(nextPairs);
+        lastEmitted.current = next;
+        onUpdateModelValue?.(next);
+        onUpdateValue?.(next);
     };
 
     const addPair = () => {
@@ -136,7 +150,7 @@ export default function KeyValue({
             )}
 
             {/* Hidden input for form submission */}
-            {name && <input type="hidden" name={name} value={JSON.stringify(modelValue)} />}
+            {name && <input type="hidden" name={name} value={JSON.stringify(normalize(pairs))} />}
 
             {/* Header with icons */}
             {(PrefixIcon || suffixIcon) && (

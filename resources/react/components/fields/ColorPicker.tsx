@@ -174,23 +174,24 @@ export default function ColorPicker({
         : selectedColor || translations?.placeholder || 'Select color';
 
     // Watch for external value changes
-    const previousModelValue = useRef(modelValue);
+    const externalValue = modelValue ?? value;
+    const previousExternalValue = useRef(externalValue);
     useEffect(() => {
-        if (previousModelValue.current === modelValue) return;
-        previousModelValue.current = modelValue;
+        if (previousExternalValue.current === externalValue) return;
+        previousExternalValue.current = externalValue;
 
         if (multiple) {
-            if (Array.isArray(modelValue)) {
-                setSelectedColors([...modelValue]);
-            } else if (modelValue) {
-                setSelectedColors([modelValue]);
+            if (Array.isArray(externalValue)) {
+                setSelectedColors([...externalValue]);
+            } else if (externalValue) {
+                setSelectedColors([externalValue]);
             } else {
                 setSelectedColors([]);
             }
         } else {
-            setSelectedColor(Array.isArray(modelValue) ? modelValue[0] || null : modelValue || null);
+            setSelectedColor(Array.isArray(externalValue) ? externalValue[0] || null : externalValue || null);
         }
-    }, [modelValue, multiple]);
+    }, [externalValue, multiple]);
 
     return (
         <div className="w-full space-y-2">

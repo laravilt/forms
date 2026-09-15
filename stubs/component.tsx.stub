@@ -40,7 +40,7 @@ export default function {{ componentName }}({
             />
 
             {/* Hidden input for form submission */}
-            {name && <input type="hidden" name={name} value={currentValue || ''} />}
+            {name && <input type="hidden" name={name} value={currentValue ?? ''} />}
         </div>
     );
 }

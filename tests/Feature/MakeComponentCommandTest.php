@@ -29,3 +29,24 @@ it('generates a Vue component with --vue', function () {
     expect(File::exists(resource_path('js/components/forms/rating-stars.vue')))->toBeTrue()
         ->and(File::exists(resource_path('js/components/forms/rating-stars.tsx')))->toBeFalse();
 });
+
+it('fails without generating frontend files when the component class already exists', function () {
+    $this->artisan('make:form-component', ['name' => 'RatingStars'])
+        ->assertSuccessful();
+
+    $this->artisan('make:form-component', ['name' => 'RatingStars', '--react' => true])
+        ->assertFailed();
+
+    expect(File::exists(resource_path('js/components/forms/rating-stars.tsx')))->toBeFalse();
+});
+
+it('fails when the frontend component already exists', function () {
+    $path = resource_path('js/components/forms/rating-stars.tsx');
+    File::ensureDirectoryExists(dirname($path));
+    File::put($path, 'existing');
+
+    $this->artisan('make:form-component', ['name' => 'RatingStars', '--react' => true])
+        ->assertFailed();
+
+    expect(File::get($path))->toBe('existing');
+});

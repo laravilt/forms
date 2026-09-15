@@ -74,8 +74,8 @@ export default function FieldWrapper({
     belowContent,
     children,
 }: FieldWrapperProps) {
-    // Generate field ID from name if not provided
-    const fieldId = id ? id : name ? name.toLowerCase().replace(/[^a-z0-9-_]/g, '-') : undefined;
+    // Match the id the controls render (`id || name`) so the label targets them
+    const fieldId = id || name || undefined;
 
     // Errors from parent (Vue: inject('errors'))
     const errors = useErrors();
@@ -167,7 +167,7 @@ export default function FieldWrapper({
 
             {/* Error Message */}
             {hasError && errorMessage && (
-                <p className="mt-1.5 text-xs text-destructive" role="alert">
+                <p id={`${name}-error`} className="mt-1.5 text-xs text-destructive" role="alert">
                     {errorMessage}
                 </p>
             )}

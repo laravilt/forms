@@ -125,6 +125,7 @@ export default function Textarea({
                     onChange={(e) => setTextValue(e.target.value)}
                     placeholder={placeholder}
                     rows={rows}
+                    maxLength={maxLength}
                     className={cn('flex-1', hasError ? 'border-destructive focus-visible:ring-destructive' : '')}
                     aria-invalid={hasError ? 'true' : 'false'}
                     aria-describedby={hasError ? `${name}-error` : undefined}

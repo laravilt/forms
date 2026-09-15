@@ -651,25 +651,8 @@ export default function Select(rawProps: SelectProps) {
         }
     };
 
-    // Watch search term changes directly
-    const searchDebounceTimeout = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-    const previousSearchTerm = useRef(searchTerm);
-    useEffect(() => {
-        if (previousSearchTerm.current === searchTerm) return;
-        previousSearchTerm.current = searchTerm;
-
-        // Update current search
-        currentSearch.current = searchTerm;
-
-        // Only search if dropdown is open
-        if (!openRef.current) return;
-
-        clearTimeout(searchDebounceTimeout.current);
-        searchDebounceTimeout.current = setTimeout(() => {
-            void fetchOptionsRef.current(true, searchTerm);
-        }, latestProps.current.searchDebounce);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [searchTerm]);
+    // Search fetching is debounced in handleSearchChange only; a second searchTerm watcher here
+    // would issue a duplicate request per query.
 
     // Watch open state to fetch initial data (preload)
     const previousOpen = useRef(open);
@@ -1174,12 +1157,16 @@ export default function Select(rawProps: SelectProps) {
         const count = internalSelectedValues.length;
 
         if (p.minItems && count < p.minItems) {
-            setValidationError(`Please select at least ${p.minItems} item${p.minItems > 1 ? 's' : ''}`);
+            setValidationError(
+                p.minItemsValidationMessage ?? `Please select at least ${p.minItems} item${p.minItems > 1 ? 's' : ''}`,
+            );
             return;
         }
 
         if (p.maxItems && count > p.maxItems) {
-            setValidationError(`You can only select up to ${p.maxItems} item${p.maxItems > 1 ? 's' : ''}`);
+            setValidationError(
+                p.maxItemsValidationMessage ?? `You can only select up to ${p.maxItems} item${p.maxItems > 1 ? 's' : ''}`,
+            );
             return;
         }
 
@@ -1211,6 +1198,7 @@ export default function Select(rawProps: SelectProps) {
             setOpen(false);
             // Clear search term when closing after selection
             setSearchTerm('');
+            currentSearch.current = '';
         }
         // For multiple select, keep dropdown open and don't clear search
     };

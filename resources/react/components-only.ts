@@ -10,12 +10,17 @@ import LaraviltCheckboxList from './components/fields/CheckboxList';
 import LaraviltCodeEditor from './components/fields/CodeEditor';
 import LaraviltColorPicker from './components/fields/ColorPicker';
 import LaraviltDatePicker from './components/fields/DatePicker';
+import LaraviltDateRangePicker from './components/fields/DateRangePicker';
 import LaraviltDateTimePicker from './components/fields/DateTimePicker';
 import LaraviltFileUpload from './components/fields/FileUpload';
 import LaraviltHidden from './components/fields/Hidden';
+import LaraviltIconPicker from './components/fields/IconPicker';
 import LaraviltKeyValue from './components/fields/KeyValue';
 import LaraviltMarkdownEditor from './components/fields/MarkdownEditor';
+import LaraviltNumberField from './components/fields/NumberField';
+import LaraviltPinInput from './components/fields/PinInput';
 import LaraviltRadio from './components/fields/Radio';
+import LaraviltRateInput from './components/fields/RateInput';
 import LaraviltRepeater from './components/fields/Repeater';
 import LaraviltRichEditor from './components/fields/RichEditor';
 import LaraviltSelect from './components/fields/SelectWrapper';
@@ -51,6 +56,7 @@ export default {
             'laravilt-date-picker': LaraviltDatePicker,
             'laravilt-time-picker': LaraviltTimePicker,
             'laravilt-datetime-picker': LaraviltDateTimePicker,
+            'laravilt-date-range-picker': LaraviltDateRangePicker,
             'laravilt-file-upload': LaraviltFileUpload,
             'laravilt-rich-editor': LaraviltRichEditor,
             'laravilt-markdown-editor': LaraviltMarkdownEditor,
@@ -61,6 +67,10 @@ export default {
             'laravilt-repeater': LaraviltRepeater,
             'laravilt-builder': LaraviltBuilder,
             'laravilt-slider': LaraviltSlider,
+            'laravilt-icon-picker': LaraviltIconPicker,
+            'laravilt-number-field': LaraviltNumberField,
+            'laravilt-pin-input': LaraviltPinInput,
+            'laravilt-rate-input': LaraviltRateInput,
 
             // Schema components
             'laravilt-tabs': LaraviltTabs,

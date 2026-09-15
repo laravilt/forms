@@ -67,13 +67,17 @@ export default function RateInput({
         onUpdateValue?.(next);
     };
 
-    const handleClick = (index: number, half: boolean = false) => {
+    const handleClick = (index: number, event: MouseEvent<HTMLButtonElement>) => {
         if (disabled || readonly) return;
 
         let newRating = index + 1;
 
-        if (allowHalf && half) {
-            newRating = index + 0.5;
+        // Same half detection as the hover preview; keyboard clicks (detail 0) have no pointer position
+        if (allowHalf && event.detail > 0) {
+            const rect = event.currentTarget.getBoundingClientRect();
+            if (event.clientX - rect.left < rect.width / 2) {
+                newRating = index + 0.5;
+            }
         }
 
         // Toggle off if clicking the same rating
@@ -114,26 +118,31 @@ export default function RateInput({
 
     const fillColor = color ? color : '#facc15'; // Default yellow color
 
+    // There is no single labelable control, so the label names the button group
+    const labelId = label && name ? `${name}-label` : undefined;
+
     return (
         <div className="w-full space-y-2">
             {/* Label */}
             {label && (
-                <label htmlFor={name} className="text-sm font-medium block text-foreground">
+                <span id={labelId} className="text-sm font-medium block text-foreground">
                     {label}
                     {required && <span className="text-destructive ms-0.5">*</span>}
-                </label>
+                </span>
             )}
 
             {/* Hidden input for form submission */}
             {name && <input type="hidden" name={name} value={rating} />}
 
             {/* Rating Input */}
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1" role="group" aria-labelledby={labelId}>
                 {Array.from({ length: max }, (_, i) => i + 1).map((index) => (
                     <button
                         key={index}
                         type="button"
-                        onClick={() => handleClick(index - 1)}
+                        aria-label={`Rate ${index} of ${max}`}
+                        aria-pressed={Math.ceil(rating) === index}
+                        onClick={(e) => handleClick(index - 1, e)}
                         onMouseMove={(e) => handleMouseMove(index - 1, e)}
                         onMouseLeave={handleMouseLeave}
                         disabled={disabled}

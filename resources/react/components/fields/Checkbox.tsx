@@ -25,6 +25,7 @@ export interface CheckboxProps {
     columnSpan?: number | string;
     defaultValue?: any;
     value?: any;
+    modelValue?: any;
     checkedValue?: any;
     uncheckedValue?: any;
     hintActions?: any[];
@@ -56,13 +57,15 @@ export default function Checkbox({
     hidden,
     columnSpan,
     value,
+    modelValue,
     checkedValue,
     uncheckedValue,
     hintActions,
     onUpdateModelValue,
     children,
 }: CheckboxProps) {
-    const checkboxValue = value;
+    // Nested renderers (Builder, Repeater) only pass modelValue
+    const checkboxValue = value ?? modelValue;
     const setCheckboxValue = (next: any) => onUpdateModelValue?.(next);
 
     // Errors from parent (Vue: inject('errors'))

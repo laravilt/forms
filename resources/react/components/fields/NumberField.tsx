@@ -44,6 +44,7 @@ export default function NumberField({
     helperText,
     required,
     disabled,
+    readonly,
     min = null,
     max = null,
     step = 1,
@@ -115,7 +116,7 @@ export default function NumberField({
     };
 
     const stepBy = (direction: 1 | -1) => {
-        if (disabled) return;
+        if (disabled || readonly) return;
         const base = inputText !== null ? (parseNumber(inputText) ?? numberValue) : numberValue;
         const start = base ?? min ?? 0;
         const precision = Math.max(decimalsOf(step), decimalsOf(start));
@@ -163,7 +164,7 @@ export default function NumberField({
                     variant="outline"
                     size="icon"
                     className="h-10 w-10 rounded-e-none border-e-0"
-                    disabled={disabled || atMin}
+                    disabled={disabled || readonly || atMin}
                     tabIndex={-1}
                     aria-label="Decrease"
                     onClick={() => stepBy(-1)}
@@ -180,6 +181,7 @@ export default function NumberField({
                     )}
 
                     <input
+                        id={name}
                         type="text"
                         role="spinbutton"
                         inputMode="decimal"
@@ -190,6 +192,7 @@ export default function NumberField({
                         aria-valuemin={min ?? undefined}
                         aria-valuemax={max ?? undefined}
                         disabled={disabled}
+                        readOnly={readonly}
                         value={displayValue}
                         onChange={(e) => setInputText(e.target.value)}
                         onBlur={commitInput}
@@ -216,7 +219,7 @@ export default function NumberField({
                     variant="outline"
                     size="icon"
                     className="h-10 w-10 rounded-s-none border-s-0"
-                    disabled={disabled || atMax}
+                    disabled={disabled || readonly || atMax}
                     tabIndex={-1}
                     aria-label="Increase"
                     onClick={() => stepBy(1)}

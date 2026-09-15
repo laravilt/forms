@@ -36,16 +36,19 @@ class MakeComponentCommand extends GeneratorCommand
      */
     public function handle()
     {
-        parent::handle();
+        // GeneratorCommand::handle() returns false when the class already exists
+        if (parent::handle() === false) {
+            return self::FAILURE;
+        }
 
         $this->components->info("Form component [{$this->argument('name')}] created successfully.");
 
-        if ($this->option('vue')) {
-            $this->createVueComponent();
+        if ($this->option('vue') && ! $this->createVueComponent()) {
+            return self::FAILURE;
         }
 
-        if ($this->option('react')) {
-            $this->createReactComponent();
+        if ($this->option('react') && ! $this->createReactComponent()) {
+            return self::FAILURE;
         }
 
         // Show usage example
@@ -54,6 +57,8 @@ class MakeComponentCommand extends GeneratorCommand
             'Import: use App\Forms\Components\\'.str_replace('/', '\\', $this->argument('name')).';',
             'Usage: '.class_basename($this->argument('name')).'::make(\'field_name\')->label(\'Label\')',
         ]);
+
+        return self::SUCCESS;
     }
 
     /**
@@ -110,7 +115,7 @@ class MakeComponentCommand extends GeneratorCommand
     /**
      * Create the Vue component file.
      */
-    protected function createVueComponent(): void
+    protected function createVueComponent(): bool
     {
         $name = class_basename($this->argument('name'));
         $kebabName = Str::kebab($name);
@@ -120,7 +125,7 @@ class MakeComponentCommand extends GeneratorCommand
         if (file_exists($path) && ! $this->option('force')) {
             $this->components->error("Vue component already exists at {$path}");
 
-            return;
+            return false;
         }
 
         $directory = dirname($path);
@@ -135,12 +140,14 @@ class MakeComponentCommand extends GeneratorCommand
         file_put_contents($path, $stub);
 
         $this->components->info("Vue component created at {$path}");
+
+        return true;
     }
 
     /**
      * Create the React component file.
      */
-    protected function createReactComponent(): void
+    protected function createReactComponent(): bool
     {
         $name = class_basename($this->argument('name'));
         $kebabName = Str::kebab($name);
@@ -150,7 +157,7 @@ class MakeComponentCommand extends GeneratorCommand
         if (file_exists($path) && ! $this->option('force')) {
             $this->components->error("React component already exists at {$path}");
 
-            return;
+            return false;
         }
 
         $directory = dirname($path);
@@ -165,5 +172,7 @@ class MakeComponentCommand extends GeneratorCommand
         file_put_contents($path, $stub);
 
         $this->components->info("React component created at {$path}");
+
+        return true;
     }
 }

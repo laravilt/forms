@@ -627,7 +627,13 @@ export default function RichEditor({
             )}
 
             {/* Hidden input for form submission */}
-            {name && <input type="hidden" name={name} value={editor?.getHTML() || ''} />}
+            {name && (
+                <input
+                    type="hidden"
+                    name={name}
+                    value={json ? (editor ? JSON.stringify(editor.getJSON()) : '') : editor?.getHTML() || ''}
+                />
+            )}
 
             {/* Header icons */}
             {(PrefixIcon || SuffixIcon) && (

@@ -145,6 +145,7 @@ export default function TagsInput({
                         <button
                             type="button"
                             className="hover:bg-secondary/80 rounded-sm transition-colors"
+                            aria-label={`Remove ${tag}`}
                             disabled={disabled}
                             onClick={() => removeTag(index)}
                         >
@@ -155,6 +156,7 @@ export default function TagsInput({
 
                 {/* Input */}
                 <input
+                    id={name}
                     value={inputValue}
                     onChange={(e) => setInputValue(e.target.value)}
                     type="text"
@@ -173,14 +175,17 @@ export default function TagsInput({
             {suggestions && suggestions.length > 0 && (
                 <div className="mt-2 flex flex-wrap gap-2">
                     {suggestions.map((suggestion) => (
-                        <Badge
+                        <button
                             key={suggestion}
-                            variant="outline"
-                            className="cursor-pointer hover:bg-accent"
+                            type="button"
+                            className="rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed"
+                            disabled={disabled}
                             onClick={() => addTag(suggestion)}
                         >
-                            {suggestion}
-                        </Badge>
+                            <Badge variant="outline" className="cursor-pointer hover:bg-accent">
+                                {suggestion}
+                            </Badge>
+                        </button>
                     ))}
                 </div>
             )}

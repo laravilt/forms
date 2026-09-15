@@ -133,6 +133,7 @@ export default function SelectSimple({
                 {/* Native select */}
                 {multiple ? (
                     <select
+                        id={name}
                         multiple={true}
                         disabled={disabled}
                         value={Array.isArray(currentValue) ? currentValue.map((v) => String(v)) : []}
@@ -147,6 +148,7 @@ export default function SelectSimple({
                     </select>
                 ) : (
                     <select
+                        id={name}
                         disabled={disabled}
                         value={Array.isArray(currentValue) ? '' : String(currentValue || '')}
                         className={selectClass}

@@ -277,7 +277,8 @@ export default function Repeater({
         setItemIdsState(next);
     };
 
-    const [openItems, setOpenItems] = useState<Set<number>>(() => new Set());
+    // Keyed by stable item id so expanded state follows the item through remove/clone/reorder
+    const [openItems, setOpenItems] = useState<Set<string>>(() => new Set());
     const itemsContainer = useRef<HTMLDivElement>(null);
 
     const emitRef = useLatest({ onUpdateModelValue, onUpdateValue });
@@ -400,13 +401,14 @@ export default function Repeater({
             });
 
             const newValue = [...internalItemsRef.current, newItem];
+            const newId = generateItemId();
             setInternalItems(newValue);
-            setItemIds([...itemIdsRef.current, generateItemId()]);
+            setItemIds([...itemIdsRef.current, newId]);
             emitUpdate(newValue);
 
             // Auto-expand new item if collapsible
             if (collapsible) {
-                setOpenItems((previous) => new Set(previous).add(newValue.length - 1));
+                setOpenItems((previous) => new Set(previous).add(newId));
             }
         } finally {
             releaseUpdatingFlag();
@@ -424,12 +426,12 @@ export default function Repeater({
             newValue.splice(index, 1);
             setInternalItems(newValue);
             const ids = [...itemIdsRef.current];
-            ids.splice(index, 1);
+            const [removedId] = ids.splice(index, 1);
             setItemIds(ids);
             emitUpdate(newValue);
             setOpenItems((previous) => {
                 const next = new Set(previous);
-                next.delete(index);
+                next.delete(removedId);
                 return next;
             });
         } finally {
@@ -450,13 +452,14 @@ export default function Repeater({
             newValue.splice(index + 1, 0, clonedItem);
             setInternalItems(newValue);
             const ids = [...itemIdsRef.current];
-            ids.splice(index + 1, 0, generateItemId());
+            const clonedId = generateItemId();
+            ids.splice(index + 1, 0, clonedId);
             setItemIds(ids);
             emitUpdate(newValue);
 
             // Auto-expand cloned item if collapsible
             if (collapsible) {
-                setOpenItems((previous) => new Set(previous).add(index + 1));
+                setOpenItems((previous) => new Set(previous).add(clonedId));
             }
         } finally {
             releaseUpdatingFlag();
@@ -464,19 +467,21 @@ export default function Repeater({
     };
 
     const toggleItem = (index: number) => {
+        const id = itemIdsRef.current[index];
+        if (!id) return;
         setOpenItems((previous) => {
             const next = new Set(previous);
-            if (next.has(index)) {
-                next.delete(index);
+            if (next.has(id)) {
+                next.delete(id);
             } else {
-                next.add(index);
+                next.add(id);
             }
             return next;
         });
     };
 
     const isOpen = (index: number) => {
-        return !collapsible || openItems.has(index);
+        return !collapsible || openItems.has(itemIds[index]);
     };
 
     // Trigger reactive field update for live/lazy fields inside Repeater
