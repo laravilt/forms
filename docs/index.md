@@ -293,7 +293,7 @@ metadata; the native name is shown in the popover and the direction sets
 'locales' => [
     'en' => ['name' => 'English', 'direction' => 'ltr'],
     'ar' => ['name' => 'العربية', 'direction' => 'rtl'],
-    'ckb' => ['name' => 'کوردی', 'direction' => 'rtl', 'label' => 'KU'],
+    'ckb' => ['name' => 'کوردی', 'direction' => 'rtl'],
 ],
 // or simply: 'locales' => ['en', 'ar', 'ckb'],
 ```
