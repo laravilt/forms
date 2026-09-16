@@ -93,4 +93,9 @@ return [
         'search_placeholder' => 'Search permissions...',
         'no_results' => 'No permissions found',
     ],
+
+    // TranslatableInput Component
+    'translatable_input' => [
+        'translations' => 'Translations',
+    ],
 ];

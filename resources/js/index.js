@@ -10,6 +10,7 @@ export { default as FieldWrapper } from './components/FieldWrapper.vue';
 // Export field components
 export { default as TextInput } from './components/fields/TextInput.vue';
 export { default as Textarea } from './components/fields/Textarea.vue';
+export { default as TranslatableInput } from './components/fields/TranslatableInput.vue';
 export { default as Select } from './components/fields/Select.vue';
 export { default as Checkbox } from './components/fields/Checkbox.vue';
 export { default as CheckboxList } from './components/fields/CheckboxList.vue';
@@ -46,6 +47,7 @@ import LaraviltForm from './components/Form.vue';
 import LaraviltFieldWrapper from './components/FieldWrapper.vue';
 import LaraviltTextInput from './components/fields/TextInput.vue';
 import LaraviltTextarea from './components/fields/Textarea.vue';
+import LaraviltTranslatableInput from './components/fields/TranslatableInput.vue';
 import LaraviltSelect from './components/fields/Select.vue';
 import LaraviltCheckbox from './components/fields/Checkbox.vue';
 import LaraviltCheckboxList from './components/fields/CheckboxList.vue';
@@ -82,6 +84,7 @@ if (typeof window !== 'undefined' && window.Vue) {
         FieldWrapper: LaraviltFieldWrapper,
         TextInput: LaraviltTextInput,
         Textarea: LaraviltTextarea,
+        TranslatableInput: LaraviltTranslatableInput,
         Select: LaraviltSelect,
         Checkbox: LaraviltCheckbox,
         CheckboxList: LaraviltCheckboxList,
@@ -128,6 +131,7 @@ export default {
         // Field components
         app.component('laravilt-text-input', LaraviltTextInput);
         app.component('laravilt-textarea', LaraviltTextarea);
+        app.component('laravilt-translatable-input', LaraviltTranslatableInput);
         app.component('laravilt-select', LaraviltSelect);
         app.component('laravilt-checkbox', LaraviltCheckbox);
         app.component('laravilt-checkbox-list', LaraviltCheckboxList);

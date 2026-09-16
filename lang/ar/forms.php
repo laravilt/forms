@@ -93,4 +93,9 @@ return [
         'search_placeholder' => 'بحث في الصلاحيات...',
         'no_results' => 'لم يتم العثور على صلاحيات',
     ],
+
+    // TranslatableInput Component
+    'translatable_input' => [
+        'translations' => 'الترجمات',
+    ],
 ];

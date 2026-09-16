@@ -3,6 +3,7 @@ import Form from './components/Form.vue'
 import FieldWrapper from './components/FieldWrapper.vue'
 import TextInput from './components/fields/TextInput.vue'
 import Textarea from './components/fields/Textarea.vue'
+import TranslatableInput from './components/fields/TranslatableInput.vue'
 import Select from './components/fields/Select.vue'
 import Checkbox from './components/fields/Checkbox.vue'
 import CheckboxList from './components/fields/CheckboxList.vue'
@@ -43,6 +44,7 @@ export default {
         // Field components
         app.component('laravilt-text-input', TextInput)
         app.component('laravilt-textarea', Textarea)
+        app.component('laravilt-translatable-input', TranslatableInput)
         app.component('laravilt-select', Select)
         app.component('laravilt-checkbox', Checkbox)
         app.component('laravilt-checkbox-list', CheckboxList)

@@ -26,6 +26,7 @@ import Slider from './components/fields/Slider';
 import TagsInput from './components/fields/TagsInput';
 import TextInput from './components/fields/TextInput';
 import Textarea from './components/fields/Textarea';
+import TranslatableInput from './components/fields/TranslatableInput';
 import TimePicker from './components/fields/TimePicker';
 import Toggle from './components/fields/Toggle';
 import ToggleButtons from './components/fields/ToggleButtons';
@@ -45,6 +46,7 @@ export default {
             // Field components
             'laravilt-text-input': TextInput,
             'laravilt-textarea': Textarea,
+            'laravilt-translatable-input': TranslatableInput,
             'laravilt-select': Select,
             'laravilt-checkbox': Checkbox,
             'laravilt-checkbox-list': CheckboxList,

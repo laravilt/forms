@@ -29,5 +29,31 @@ return [
         'middleware' => ['web', 'auth', 'throttle:120,1'],
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Locales
+    |--------------------------------------------------------------------------
+    |
+    | The locales offered by TranslatableInput when a field does not call
+    | ->locales() itself. Each entry may be a plain code or a code => metadata
+    | pair with a native "name" and a "direction" (ltr or rtl); an optional
+    | "label" overrides the short badge shown on the globe button.
+    |
+    | 'locales' => ['en', 'ar', 'ckb'],
+    | 'locales' => [
+    |     'en' => ['name' => 'English', 'direction' => 'ltr'],
+    |     'ar' => ['name' => 'العربية', 'direction' => 'rtl'],
+    |     'ckb' => ['name' => 'کوردی', 'direction' => 'rtl'],
+    | ],
+    |
+    | A plain code gets the code as its name and "ltr" as its direction.
+    | Leave empty to fall back to the application locale.
+    |
+    */
+
+    'locales' => [
+        'en' => ['name' => 'English', 'direction' => 'ltr'],
+    ],
+
     // Add your configuration options here
 ];

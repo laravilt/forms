@@ -45,6 +45,7 @@ php artisan make:form UserForm --resource
 ### 📝 Basic Fields
 - **TextInput**: Single-line text input with validation
 - **Textarea**: Multi-line text input
+- **TranslatableInput**: Multi-language text input with a per-locale popover
 - **NumberField**: Numeric input with min/max
 - **Select**: Dropdown select with search
 - **Checkbox**: Single checkbox
@@ -259,6 +260,80 @@ TextInput::make('name')
     ->prefix('Mr.')
     ->suffix('@example.com')
     ->helperText('Enter your full name');
+```
+
+### TranslatableInput
+
+A multi-language text field. Its value is an array keyed by locale code
+(`['en' => 'Title', 'ar' => 'العنوان']`). The main input edits the active
+locale; a globe button inside the input opens a popover with one input per
+locale (RTL locales render with `dir="rtl"`). The globe is hidden when only one
+locale is allowed.
+
+```php
+TranslatableInput::make('name')
+    ->label('Name')
+    ->locales(['en', 'ar', 'ckb']) // defaults to config('laravilt-forms.locales')
+    ->activeLocale('en')           // defaults to the app locale when allowed
+    ->required()                   // every locale is required...
+    ->requiredLocales(['en'])      // ...unless you narrow it down
+    ->maxLength(255)               // applied per locale
+    ->multiline()                  // textarea per locale
+    ->rows(4);
+```
+
+Locales resolve in this order: explicit `locales()`, then
+`config('laravilt-forms.locales')` (published to `config/laravilt-forms.php`),
+then the application locale. The config accepts plain codes or per-locale
+metadata; the native name is shown in the popover and the direction sets
+`dir` on each input:
+
+```php
+// config/laravilt-forms.php
+'locales' => [
+    'en' => ['name' => 'English', 'direction' => 'ltr'],
+    'ar' => ['name' => 'العربية', 'direction' => 'rtl'],
+    'ckb' => ['name' => 'کوردی', 'direction' => 'rtl', 'label' => 'KU'],
+],
+// or simply: 'locales' => ['en', 'ar', 'ckb'],
+```
+
+The config is the only source of names and directions: a plain code is shown
+as its own code, labelled with its uppercased base code, and rendered LTR.
+
+Validation rules are produced per locale key:
+
+```php
+TranslatableInput::make('name')->locales(['en', 'ar'])->required()->getValidationRules();
+// [
+//     'name'    => ['required', 'array'],
+//     'name.en' => ['required', 'string'],
+//     'name.ar' => ['required', 'string'],
+// ]
+```
+
+`hydrateState()` / `dehydrateState()` accept a JSON string, an array or `null`
+and always return an array with every allowed locale present, so the field works
+with both storage styles:
+
+```php
+// spatie/laravel-translatable
+class Product extends Model
+{
+    use \Spatie\Translatable\HasTranslations;
+
+    public $translatable = ['name'];
+}
+
+// or a plain JSON column
+class Category extends Model
+{
+    protected $casts = ['name' => 'array'];
+}
+
+// Both accept the field's value as-is:
+$product->setTranslations('name', $data['name']); // or $product->name = $data['name'];
+$category->name = $data['name'];
 ```
 
 ### Select
@@ -592,6 +667,7 @@ class ProductForm extends Form
 ### Basic
 - TextInput
 - Textarea
+- TranslatableInput
 - NumberField
 - Select
 - Checkbox

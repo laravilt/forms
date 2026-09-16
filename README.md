@@ -68,7 +68,7 @@ php artisan make:component CustomField
 
 ## Field Types
 
-**Basic:** TextInput, Textarea, NumberField, Select, Checkbox, CheckboxList, Radio, Toggle, ToggleButtons, Hidden
+**Basic:** TextInput, Textarea, TranslatableInput, NumberField, Select, Checkbox, CheckboxList, Radio, Toggle, ToggleButtons, Hidden
 
 **Date & Time:** DatePicker, DateTimePicker, TimePicker, DateRangePicker
 
