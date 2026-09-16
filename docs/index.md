@@ -265,7 +265,7 @@ TextInput::make('name')
 ### TranslatableInput
 
 A multi-language text field. Its value is an array keyed by locale code
-(`['en' => 'Title', 'ar' => 'العنوان']`). The main input edits the active
+(`['en' => 'Title', 'ar' => 'العنوان', 'ckb' => 'ناونیشان']`). The main input edits the active
 locale; a globe button inside the input opens a popover with one input per
 locale (RTL locales render with `dir="rtl"`). The globe is hidden when only one
 locale is allowed.
@@ -304,11 +304,12 @@ as its own code, labelled with its uppercased base code, and rendered LTR.
 Validation rules are produced per locale key:
 
 ```php
-TranslatableInput::make('name')->locales(['en', 'ar'])->required()->getValidationRules();
+TranslatableInput::make('name')->locales(['en', 'ar', 'ckb'])->required()->getValidationRules();
 // [
 //     'name'    => ['required', 'array'],
 //     'name.en' => ['required', 'string'],
 //     'name.ar' => ['required', 'string'],
+//     'name.ckb' => ['required', 'string'],
 // ]
 ```
 
