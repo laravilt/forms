@@ -5,20 +5,28 @@ namespace Laravilt\Forms\Support;
 /**
  * Locale metadata helper for translatable fields.
  *
- * Locales are defined in config/laravilt-forms.php under "locales", either as
- * plain codes or as code => ['name' => ..., 'direction' => ..., 'label' => ...].
- * This helper normalises both shapes into the metadata the frontend needs.
+ * Locales come from config/laravilt-forms.php under "locales" when that key is
+ * set, either as plain codes or as code => ['name' => ..., 'direction' => ...,
+ * 'label' => ...]. When it is empty they come from config('app.available_locales'),
+ * the list the panel's Locale & Timezone page uses, shaped as
+ * ['value' => 'en', 'label' => 'English', 'dir' => 'ltr'] entries.
+ * This helper normalises every shape into the metadata the frontend needs.
  * A code without metadata gets its own code as the name, the uppercased base
  * code as the label and "ltr" as the direction.
  */
 class Locales
 {
     /**
-     * Locale codes from config('laravilt-forms.locales'), falling back to the app locale.
+     * Locale codes from config('laravilt-forms.locales'), else
+     * config('app.available_locales'), else the app locale.
      */
     public static function default(): array
     {
         $codes = static::codes(config('laravilt-forms.locales'));
+
+        if ($codes === []) {
+            $codes = static::codes(static::fromApp());
+        }
 
         return $codes === [] ? [app()->getLocale()] : $codes;
     }
@@ -46,19 +54,77 @@ class Locales
     }
 
     /**
-     * Metadata for a locale as configured in laravilt-forms.locales, if any.
+     * config('app.available_locales') normalised to code => ['name', 'direction'].
+     *
+     * Accepts the panel shape (['value' => 'en', 'label' => 'English', 'dir' => 'ltr'])
+     * as well as the plain-code and code => metadata shapes used by this package.
+     *
+     * @return array<string, array{name?: string, direction?: string}>
      */
-    public static function configured(string $locale): array
+    public static function fromApp(): array
     {
-        $locales = config('laravilt-forms.locales');
+        $locales = config('app.available_locales');
 
         if (! is_array($locales)) {
             return [];
         }
 
-        $meta = $locales[$locale] ?? null;
+        $normalised = [];
 
-        return is_array($meta) ? $meta : [];
+        foreach ($locales as $key => $value) {
+            if (is_string($key)) {
+                $normalised[$key] = is_array($value) ? $value : [];
+
+                continue;
+            }
+
+            if (is_string($value) && $value !== '') {
+                $normalised[$value] = [];
+
+                continue;
+            }
+
+            if (! is_array($value)) {
+                continue;
+            }
+
+            $code = $value['value'] ?? $value['code'] ?? null;
+
+            if (! is_string($code) || $code === '') {
+                continue;
+            }
+
+            $meta = [];
+
+            $name = $value['name'] ?? $value['label'] ?? null;
+            $direction = $value['direction'] ?? $value['dir'] ?? null;
+
+            if (is_string($name) && $name !== '') {
+                $meta['name'] = $name;
+            }
+
+            if (is_string($direction) && $direction !== '') {
+                $meta['direction'] = $direction;
+            }
+
+            $normalised[$code] = $meta;
+        }
+
+        return $normalised;
+    }
+
+    /**
+     * Metadata for a locale from laravilt-forms.locales, else app.available_locales, if any.
+     */
+    public static function configured(string $locale): array
+    {
+        $locales = config('laravilt-forms.locales');
+
+        if (is_array($locales) && is_array($locales[$locale] ?? null)) {
+            return $locales[$locale];
+        }
+
+        return static::fromApp()[$locale] ?? [];
     }
 
     /**

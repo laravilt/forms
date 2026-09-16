@@ -273,7 +273,7 @@ locale is allowed.
 ```php
 TranslatableInput::make('name')
     ->label('Name')
-    ->locales(['en', 'ar', 'ckb']) // defaults to config('laravilt-forms.locales')
+    ->locales(['en', 'ar', 'ckb']) // defaults to the configured locales, see below
     ->activeLocale('en')           // defaults to the app locale when allowed
     ->required()                   // every locale is required...
     ->requiredLocales(['en'])      // ...unless you narrow it down
@@ -284,9 +284,28 @@ TranslatableInput::make('name')
 
 Locales resolve in this order: explicit `locales()`, then
 `config('laravilt-forms.locales')` (published to `config/laravilt-forms.php`),
-then the application locale. The config accepts plain codes or per-locale
-metadata; the native name is shown in the popover and the direction sets
-`dir` on each input:
+then `config('app.available_locales')`, then the application locale.
+
+By default the field reuses the languages the panel already knows about. That
+is the same list the [Locale & Timezone](../auth/profile/preferences.md)
+settings page shows, so a project defines its languages once in
+`config/app.php`; `label` becomes the native name shown in the popover and
+`dir` sets `dir` on each input:
+
+```php
+// config/app.php
+'available_locales' => [
+    ['value' => 'en', 'label' => 'English', 'dir' => 'ltr'],
+    ['value' => 'ar', 'label' => 'العربية', 'dir' => 'rtl'],
+    ['value' => 'ckb', 'label' => 'کوردی', 'dir' => 'rtl'],
+],
+```
+
+Set `laravilt-forms.locales` only when the languages content is written in
+differ from the languages the UI is shown in, for example an English-only
+admin panel that manages content in three languages. It accepts plain codes or
+per-locale metadata, and an optional `label` overrides the short badge on the
+globe button:
 
 ```php
 // config/laravilt-forms.php
@@ -298,8 +317,10 @@ metadata; the native name is shown in the popover and the direction sets
 // or simply: 'locales' => ['en', 'ar', 'ckb'],
 ```
 
-The config is the only source of names and directions: a plain code is shown
-as its own code, labelled with its uppercased base code, and rendered LTR.
+Names and directions are looked up in `laravilt-forms.locales` first and
+`app.available_locales` second, so plain codes in the forms config still pick
+up the names the panel defines. A code found in neither is shown as its own
+code, labelled with its uppercased base code, and rendered LTR.
 
 Validation rules are produced per locale key:
 

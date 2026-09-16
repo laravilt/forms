@@ -80,7 +80,8 @@ class TranslatableInput extends Field
     /**
      * Get the allowed locales.
      *
-     * Resolution order: explicit locales(), config('laravilt-forms.locales'), app locale.
+     * Resolution order: explicit locales(), config('laravilt-forms.locales'),
+     * config('app.available_locales'), app locale.
      */
     public function getLocales(): array
     {

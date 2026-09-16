@@ -24,11 +24,58 @@ it('uses the locales from config by default', function () {
     expect($this->input->getLocales())->toBe(['en', 'ar', 'ckb']);
 });
 
-it('falls back to the app locale when config has no locales', function () {
+it('falls back to the app locale when neither config has locales', function () {
     config()->set('laravilt-forms.locales', []);
+    config()->set('app.available_locales', []);
     app()->setLocale('fr');
 
     expect($this->input->getLocales())->toBe(['fr']);
+});
+
+it('falls back to app.available_locales when the forms config is empty', function () {
+    config()->set('laravilt-forms.locales', []);
+    config()->set('app.available_locales', [
+        ['value' => 'en', 'label' => 'English', 'dir' => 'ltr'],
+        ['value' => 'ar', 'label' => 'العربية', 'dir' => 'rtl'],
+    ]);
+
+    expect($this->input->getLocales())->toBe(['en', 'ar'])
+        ->and($this->input->toArray()['locales'])->toBe([
+            ['code' => 'en', 'name' => 'English', 'label' => 'EN', 'direction' => 'ltr'],
+            ['code' => 'ar', 'name' => 'العربية', 'label' => 'AR', 'direction' => 'rtl'],
+        ]);
+});
+
+it('prefers laravilt-forms.locales over app.available_locales', function () {
+    config()->set('laravilt-forms.locales', ['de']);
+    config()->set('app.available_locales', [
+        ['value' => 'en', 'label' => 'English', 'dir' => 'ltr'],
+    ]);
+
+    expect($this->input->getLocales())->toBe(['de']);
+});
+
+it('reads metadata from app.available_locales for plain codes in the forms config', function () {
+    config()->set('laravilt-forms.locales', ['ar', 'en' => ['name' => 'Custom']]);
+    config()->set('app.available_locales', [
+        ['value' => 'en', 'label' => 'English', 'dir' => 'ltr'],
+        ['value' => 'ar', 'label' => 'العربية', 'dir' => 'rtl'],
+    ]);
+
+    expect(Locales::name('ar'))->toBe('العربية')
+        ->and(Locales::direction('ar'))->toBe('rtl')
+        ->and(Locales::name('en'))->toBe('Custom');
+});
+
+it('accepts plain codes and keyed metadata in app.available_locales', function () {
+    config()->set('laravilt-forms.locales', []);
+    config()->set('app.available_locales', ['en', 'he' => ['name' => 'עברית', 'direction' => 'rtl'], ['code' => 'fa', 'dir' => 'RTL'], 42, ['label' => 'no code']]);
+
+    expect(Locales::default())->toBe(['en', 'he', 'fa'])
+        ->and(Locales::name('en'))->toBe('en')
+        ->and(Locales::name('he'))->toBe('עברית')
+        ->and(Locales::isRtl('he'))->toBeTrue()
+        ->and(Locales::isRtl('fa'))->toBeTrue();
 });
 
 it('can set explicit locales', function () {
