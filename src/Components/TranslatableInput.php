@@ -3,6 +3,7 @@
 namespace Laravilt\Forms\Components;
 
 use Closure;
+use Laravilt\Forms\Rules\TranslationsRule;
 use Laravilt\Forms\Support\Locales;
 
 /**
@@ -12,7 +13,7 @@ use Laravilt\Forms\Support\Locales;
  * e.g. ['en' => 'Title', 'ar' => 'العنوان']. Supports:
  * - Single-line or multiline (textarea) editing
  * - Explicit, config-driven or app-locale based locale lists
- * - Per-locale validation rules (name.en, name.ar, ...)
+ * - Per-locale validation (errors reported as name.en, name.ar, ...)
  * - Hydration from JSON strings, arrays or null
  */
 class TranslatableInput extends Field
@@ -169,17 +170,36 @@ class TranslatableInput extends Field
     }
 
     /**
-     * Get validation rules keyed by locale: name.en, name.ar, ...
+     * Validation rules for the field: presence, array, and a TranslationsRule
+     * that validates every locale and reports errors as name.en, name.ar, ...
+     *
+     * Schema::getValidationRules() assigns one rule list per field name, so the
+     * per-locale rules travel inside the rule object instead of as extra keys.
+     * Use getLocaleValidationRules() when validating by hand with flat keys.
      */
     public function getValidationRules(): array
     {
-        $name = $this->getName();
+        return [
+            $this->getRequiredLocales() === [] ? 'nullable' : 'required',
+            'array',
+            new TranslationsRule(
+                $this->getLocaleRules(),
+                $this->getLocaleAttributes(),
+                $this->validationMessages,
+            ),
+        ];
+    }
+
+    /**
+     * Rules per locale code: ['en' => ['required', 'string', 'max:120'], ...].
+     *
+     * @return array<string, array<int, mixed>>
+     */
+    public function getLocaleRules(): array
+    {
         $required = $this->getRequiredLocales();
         $extra = $this->getExtraValidationRules();
-
-        $rules = [
-            $name => [$required === [] ? 'nullable' : 'required', 'array'],
-        ];
+        $rules = [];
 
         foreach ($this->getLocales() as $locale) {
             $localeRules = [in_array($locale, $required, true) ? 'required' : 'nullable', 'string'];
@@ -188,10 +208,60 @@ class TranslatableInput extends Field
                 $localeRules[] = "max:{$this->maxLength}";
             }
 
-            $rules["{$name}.{$locale}"] = array_values(array_unique(array_merge($localeRules, $extra), SORT_REGULAR));
+            $rules[$locale] = array_values(array_unique(array_merge($localeRules, $extra), SORT_REGULAR));
         }
 
         return $rules;
+    }
+
+    /**
+     * Flat rules for manual validation: ['name' => [...], 'name.en' => [...], ...].
+     *
+     * @return array<string, array<int, mixed>>
+     */
+    public function getLocaleValidationRules(): array
+    {
+        $name = $this->getName();
+        $rules = [$name => [$this->getRequiredLocales() === [] ? 'nullable' : 'required', 'array']];
+
+        foreach ($this->getLocaleRules() as $locale => $localeRules) {
+            $rules["{$name}.{$locale}"] = $localeRules;
+        }
+
+        return $rules;
+    }
+
+    /**
+     * Display names per locale code, e.g. ['en' => 'Title (EN)'], so messages
+     * read "The Title (EN) field is required." instead of "The title.en field...".
+     *
+     * @return array<string, string>
+     */
+    public function getLocaleAttributes(): array
+    {
+        $label = $this->getLabel() ?: $this->getName();
+        $attributes = [];
+
+        foreach ($this->getLocaleMetadata() as $locale) {
+            $attributes[$locale['code']] = "{$label} ({$locale['label']})";
+        }
+
+        return $attributes;
+    }
+
+    /**
+     * Validation attributes including the nested locale keys (name.en => Title (EN)).
+     */
+    public function getValidationAttributes(): array
+    {
+        $name = $this->getName();
+        $attributes = parent::getValidationAttributes();
+
+        foreach ($this->getLocaleAttributes() as $locale => $attribute) {
+            $attributes["{$name}.{$locale}"] = $attribute;
+        }
+
+        return $attributes;
     }
 
     /**

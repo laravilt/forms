@@ -1,6 +1,7 @@
 <?php
 
 use Laravilt\Forms\Components\TranslatableInput;
+use Laravilt\Forms\Rules\TranslationsRule;
 use Laravilt\Forms\Support\Locales;
 
 beforeEach(function () {
@@ -173,7 +174,7 @@ it('derives labels from regional codes', function () {
 });
 
 it('builds nullable validation rules per locale by default', function () {
-    expect($this->input->getValidationRules())->toBe([
+    expect($this->input->getLocaleValidationRules())->toBe([
         'name' => ['nullable', 'array'],
         'name.en' => ['nullable', 'string'],
         'name.ar' => ['nullable', 'string'],
@@ -184,7 +185,7 @@ it('builds nullable validation rules per locale by default', function () {
 it('requires every locale when the field is required', function () {
     $this->input->required()->maxLength(50);
 
-    expect($this->input->getValidationRules())->toBe([
+    expect($this->input->getLocaleValidationRules())->toBe([
         'name' => ['required', 'array'],
         'name.en' => ['required', 'string', 'max:50'],
         'name.ar' => ['required', 'string', 'max:50'],
@@ -196,7 +197,7 @@ it('can restrict the required locales', function () {
     $this->input->required()->requiredLocales(['en', 'fr']);
 
     expect($this->input->getRequiredLocales())->toBe(['en'])
-        ->and($this->input->getValidationRules())->toBe([
+        ->and($this->input->getLocaleValidationRules())->toBe([
             'name' => ['required', 'array'],
             'name.en' => ['required', 'string'],
             'name.ar' => ['nullable', 'string'],
@@ -207,7 +208,66 @@ it('can restrict the required locales', function () {
 it('appends custom rules to every locale', function () {
     $this->input->rules(['min:2']);
 
-    expect($this->input->getValidationRules()['name.ar'])->toBe(['nullable', 'string', 'min:2']);
+    expect($this->input->getLocaleRules()['ar'])->toBe(['nullable', 'string', 'min:2']);
+});
+
+it('exposes one rule list per field for schema consumers', function () {
+    $this->input->required()->requiredLocales(['en'])->maxLength(50);
+
+    $rules = $this->input->getValidationRules();
+
+    expect($rules[0])->toBe('required')
+        ->and($rules[1])->toBe('array')
+        ->and($rules[2])->toBeInstanceOf(TranslationsRule::class)
+        ->and($rules[2]->getRules())->toBe([
+            'en' => ['required', 'string', 'max:50'],
+            'ar' => ['nullable', 'string', 'max:50'],
+            'ckb' => ['nullable', 'string', 'max:50'],
+        ])
+        ->and(json_decode(json_encode($rules), true)[2])->toBe($rules[2]->getRules());
+});
+
+it('reports per-locale errors when validated as a schema field', function () {
+    $this->input->label('Name')->required()->requiredLocales(['en'])->maxLength(5);
+
+    $validator = validator(
+        ['name' => ['en' => '', 'ar' => 'طويل جدا', 'ckb' => '']],
+        ['name' => $this->input->getValidationRules()],
+    );
+
+    expect($validator->fails())->toBeTrue()
+        ->and($validator->errors()->keys())->toBe(['name.en', 'name.ar'])
+        ->and($validator->errors()->first('name.en'))->toBe('The Name (EN) field is required.')
+        ->and($validator->errors()->first('name.ar'))->toBe('The Name (AR) field must not be greater than 5 characters.');
+});
+
+it('passes validation when every required locale is filled', function () {
+    $this->input->required()->requiredLocales(['en']);
+
+    $validator = validator(
+        ['name' => ['en' => 'Hello', 'ar' => '', 'ckb' => '']],
+        ['name' => $this->input->getValidationRules()],
+    );
+
+    expect($validator->passes())->toBeTrue();
+});
+
+it('uses custom messages per locale rule', function () {
+    $this->input->required()->requiredLocales(['en'])->validationMessages(['required' => 'Fill me in']);
+
+    $validator = validator(['name' => ['en' => '']], ['name' => $this->input->getValidationRules()]);
+
+    expect($validator->errors()->first('name.en'))->toBe('Fill me in');
+});
+
+it('names nested locale attributes', function () {
+    $this->input->label('Name');
+
+    expect($this->input->getValidationAttributes())->toBe([
+        'name.en' => 'Name (EN)',
+        'name.ar' => 'Name (AR)',
+        'name.ckb' => 'Name (CKB)',
+    ]);
 });
 
 it('hydrates from a json string', function () {

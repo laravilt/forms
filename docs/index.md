@@ -323,17 +323,30 @@ Names and directions are looked up in `laravilt-forms.locales` first and
 up the names the panel defines. A code found in neither is shown as its own
 code, labelled with its uppercased base code, and rendered LTR.
 
-Validation rules are produced per locale key:
+Every locale is validated on its own and errors are reported per locale key
+(`name.en`, `name.ar`, ...), which the field shows next to the matching input.
+`getValidationRules()` returns one rule list for the field, as the schema
+expects, with a `TranslationsRule` carrying the per-locale rules; use
+`getLocaleValidationRules()` for flat keys when validating by hand:
 
 ```php
-TranslatableInput::make('name')->locales(['en', 'ar', 'ckb'])->required()->getValidationRules();
+$field = TranslatableInput::make('name')->locales(['en', 'ar', 'ckb'])->required()->maxLength(120);
+
+$field->getValidationRules();
+// ['required', 'array', TranslationsRule(en|ar|ckb => ['required', 'string', 'max:120'])]
+
+$field->getLocaleValidationRules();
 // [
-//     'name'    => ['required', 'array'],
-//     'name.en' => ['required', 'string'],
-//     'name.ar' => ['required', 'string'],
-//     'name.ckb' => ['required', 'string'],
+//     'name'     => ['required', 'array'],
+//     'name.en'  => ['required', 'string', 'max:120'],
+//     'name.ar'  => ['required', 'string', 'max:120'],
+//     'name.ckb' => ['required', 'string', 'max:120'],
 // ]
 ```
+
+Messages use the field label plus the locale, e.g. "The Name (EN) field is
+required.", and `validationMessages(['required' => '...'])` applies to every
+locale (`['en.required' => '...']` targets one).
 
 `hydrateState()` / `dehydrateState()` accept a JSON string, an array or `null`
 and always return an array with every allowed locale present, so the field works
