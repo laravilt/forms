@@ -102,7 +102,8 @@
                         </button>
                     </DialogTrigger>
                     <DialogContent class="flex max-h-[85vh] flex-col gap-0 p-0 sm:max-w-xl">
-                        <DialogHeader class="border-b px-6 py-4">
+                        <!-- Logical alignment + end padding so the title follows the UI direction and clears the close button -->
+                        <DialogHeader class="border-b px-6 py-4 pe-12 text-start sm:text-start">
                             <DialogTitle>{{ label || trans('forms::forms.translatable_input.translations') }}</DialogTitle>
                             <DialogDescription>
                                 {{ trans('forms::forms.translatable_input.description') }}
