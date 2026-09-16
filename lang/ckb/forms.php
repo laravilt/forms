@@ -97,5 +97,7 @@ return [
     // TranslatableInput Component
     'translatable_input' => [
         'translations' => 'وەرگێڕانەکان',
+        'description' => 'ئەم خانەیە بە هەموو زمانەکان دەستکاری بکە.',
+        'done' => 'تەواو',
     ],
 ];

@@ -86,12 +86,12 @@
                     :aria-describedby="hasError ? `${name}-error` : undefined"
                 />
 
-                <!-- Globe button opens the per-locale popover (hidden with a single locale) -->
-                <Popover v-if="hasLocaleSwitcher">
-                    <PopoverTrigger as-child>
+                <!-- Globe button opens the per-locale dialog (hidden with a single locale) -->
+                <Dialog v-if="hasLocaleSwitcher" v-model:open="dialogOpen">
+                    <DialogTrigger as-child>
                         <button
                             type="button"
-                            class="absolute end-1.5 flex items-center gap-0.5 text-muted-foreground transition-colors hover:text-foreground disabled:pointer-events-none disabled:opacity-50"
+                            class="absolute inset-e-1.5 flex items-center gap-0.5 text-muted-foreground transition-colors hover:text-foreground disabled:pointer-events-none disabled:opacity-50"
                             :class="multiline ? 'top-2' : 'top-1/2 -translate-y-1/2'"
                             :disabled="disabled"
                             :aria-label="trans('forms::forms.translatable_input.translations')"
@@ -100,52 +100,62 @@
                             <Globe class="h-3.5 w-3.5" />
                             <span class="text-[9px] font-bold uppercase tracking-wide">{{ labelOf(active) }}</span>
                         </button>
-                    </PopoverTrigger>
-                    <PopoverContent class="w-72 space-y-2.5 p-3" align="end">
-                        <p class="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                            {{ trans('forms::forms.translatable_input.translations') }}
-                        </p>
-                        <div v-for="locale in availableLocales" :key="locale.code" class="space-y-1">
-                            <Label
-                                :for="`${id || name}-${locale.code}`"
-                                class="flex items-center justify-between text-xs text-muted-foreground"
-                            >
-                                <span>{{ locale.name || locale.code }}</span>
-                                <span class="text-[9px] font-bold uppercase">
-                                    {{ locale.label || locale.code }}
-                                    <span v-if="isLocaleRequired(locale.code)" class="text-destructive">*</span>
-                                </span>
-                            </Label>
-                            <Textarea
-                                v-if="multiline"
-                                :id="`${id || name}-${locale.code}`"
-                                :model-value="localValue[locale.code] ?? ''"
-                                @update:model-value="(val) => setLocale(locale.code, String(val ?? ''))"
-                                :rows="rows"
-                                :maxlength="maxLength"
-                                :disabled="disabled"
-                                :readonly="readonly"
-                                :dir="locale.direction || 'ltr'"
-                                :class="localeHasError(locale.code) ? 'border-destructive focus-visible:ring-destructive' : ''"
-                            />
-                            <Input
-                                v-else
-                                :id="`${id || name}-${locale.code}`"
-                                type="text"
-                                :model-value="localValue[locale.code] ?? ''"
-                                @update:model-value="(val) => setLocale(locale.code, String(val ?? ''))"
-                                :maxlength="maxLength"
-                                :disabled="disabled"
-                                :readonly="readonly"
-                                :dir="locale.direction || 'ltr'"
-                                :class="localeHasError(locale.code) ? 'border-destructive focus-visible:ring-destructive' : ''"
-                            />
-                            <p v-if="localeError(locale.code)" class="text-xs text-destructive">
-                                {{ localeError(locale.code) }}
-                            </p>
+                    </DialogTrigger>
+                    <DialogContent class="flex max-h-[85vh] flex-col gap-0 p-0 sm:max-w-xl">
+                        <DialogHeader class="border-b px-6 py-4">
+                            <DialogTitle>{{ label || trans('forms::forms.translatable_input.translations') }}</DialogTitle>
+                            <DialogDescription>
+                                {{ trans('forms::forms.translatable_input.description') }}
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div class="flex-1 space-y-4 overflow-y-auto px-6 py-4">
+                            <div v-for="locale in availableLocales" :key="locale.code" class="space-y-1.5">
+                                <Label
+                                    :for="`${id || name}-${locale.code}`"
+                                    class="flex items-center justify-between text-sm"
+                                >
+                                    <span>{{ locale.name || locale.code }}</span>
+                                    <span class="text-[10px] font-bold uppercase text-muted-foreground">
+                                        {{ locale.label || locale.code }}
+                                        <span v-if="isLocaleRequired(locale.code)" class="text-destructive">*</span>
+                                    </span>
+                                </Label>
+                                <Textarea
+                                    v-if="multiline"
+                                    :id="`${id || name}-${locale.code}`"
+                                    :model-value="localValue[locale.code] ?? ''"
+                                    @update:model-value="(val) => setLocale(locale.code, String(val ?? ''))"
+                                    :rows="rows"
+                                    :maxlength="maxLength"
+                                    :disabled="disabled"
+                                    :readonly="readonly"
+                                    :dir="locale.direction || 'ltr'"
+                                    :class="localeHasError(locale.code) ? 'border-destructive focus-visible:ring-destructive' : ''"
+                                />
+                                <Input
+                                    v-else
+                                    :id="`${id || name}-${locale.code}`"
+                                    type="text"
+                                    :model-value="localValue[locale.code] ?? ''"
+                                    @update:model-value="(val) => setLocale(locale.code, String(val ?? ''))"
+                                    :maxlength="maxLength"
+                                    :disabled="disabled"
+                                    :readonly="readonly"
+                                    :dir="locale.direction || 'ltr'"
+                                    :class="localeHasError(locale.code) ? 'border-destructive focus-visible:ring-destructive' : ''"
+                                />
+                                <p v-if="localeError(locale.code)" class="text-xs text-destructive">
+                                    {{ localeError(locale.code) }}
+                                </p>
+                            </div>
                         </div>
-                    </PopoverContent>
-                </Popover>
+                        <DialogFooter class="border-t px-6 py-4">
+                            <Button type="button" @click="dialogOpen = false">
+                                {{ trans('forms::forms.translatable_input.done') }}
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
             </div>
 
             <!-- Suffix Actions -->
@@ -178,9 +188,18 @@
 </template>
 
 <script setup lang="ts">
+import { Button } from '@/components/ui/button';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Textarea } from '@/components/ui/textarea';
 import { useLocalization } from '@laravilt/support/composables';
 import ActionButton from '@laravilt/actions/components/ActionButton.vue';
@@ -294,6 +313,7 @@ function preferredActive(): string {
 
 const localValue = ref<Translations>(parseTranslations(props.modelValue ?? props.value));
 const active = ref<string>(preferredActive());
+const dialogOpen = ref(false);
 
 // Sync local value when the prop changes from an external source
 watch(

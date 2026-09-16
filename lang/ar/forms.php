@@ -97,5 +97,7 @@ return [
     // TranslatableInput Component
     'translatable_input' => [
         'translations' => 'الترجمات',
+        'description' => 'حرّر هذا الحقل بكل اللغات.',
+        'done' => 'تم',
     ],
 ];

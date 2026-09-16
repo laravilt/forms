@@ -1,6 +1,15 @@
+import { Button } from '@/components/ui/button';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Textarea as UiTextarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import ActionButton from '@laravilt/actions/components/ActionButton';
@@ -167,6 +176,7 @@ export default function TranslatableInput(props: TranslatableInputProps) {
     const incoming = modelValue ?? value;
 
     const [active, setActive] = useState<string>(() => preferredActive(localeCodes, activeLocale));
+    const [dialogOpen, setDialogOpen] = useState(false);
     const [localValue, setLocalValueState] = useState<Translations>(() =>
         parseTranslations(incoming, localeCodes, preferredActive(localeCodes, activeLocale)),
     );
@@ -320,10 +330,10 @@ export default function TranslatableInput(props: TranslatableInputProps) {
                         />
                     )}
 
-                    {/* Globe button opens the per-locale popover (hidden with a single locale) */}
+                    {/* Globe button opens the per-locale dialog (hidden with a single locale) */}
                     {hasLocaleSwitcher && (
-                        <Popover>
-                            <PopoverTrigger asChild>
+                        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                            <DialogTrigger asChild>
                                 <button
                                     type="button"
                                     className={cn(
@@ -337,59 +347,67 @@ export default function TranslatableInput(props: TranslatableInputProps) {
                                     <Globe className="h-3.5 w-3.5" />
                                     <span className="text-[9px] font-bold uppercase tracking-wide">{labelOf(active)}</span>
                                 </button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-72 space-y-2.5 p-3" align="end">
-                                <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
-                                    {trans('forms::forms.translatable_input.translations')}
-                                </p>
-                                {availableLocales.map((locale) => (
-                                    <div key={locale.code} className="space-y-1">
-                                        <Label
-                                            htmlFor={`${fieldId}-${locale.code}`}
-                                            className="flex items-center justify-between text-xs text-muted-foreground"
-                                        >
-                                            <span>{locale.name || locale.code}</span>
-                                            <span className="text-[9px] font-bold uppercase">
-                                                {locale.label || locale.code}
-                                                {isLocaleRequired(locale.code) && <span className="text-destructive">*</span>}
-                                            </span>
-                                        </Label>
-                                        {multiline ? (
-                                            <UiTextarea
-                                                id={`${fieldId}-${locale.code}`}
-                                                value={localValue[locale.code] ?? ''}
-                                                onChange={(e) => setLocale(locale.code, e.target.value)}
-                                                rows={rows}
-                                                maxLength={maxLength}
-                                                disabled={disabled}
-                                                readOnly={readonly}
-                                                dir={locale.direction || 'ltr'}
-                                                className={cn(
-                                                    localeHasError(locale.code) ? 'border-destructive focus-visible:ring-destructive' : '',
-                                                )}
-                                            />
-                                        ) : (
-                                            <Input
-                                                id={`${fieldId}-${locale.code}`}
-                                                type="text"
-                                                value={localValue[locale.code] ?? ''}
-                                                onChange={(e) => setLocale(locale.code, e.target.value)}
-                                                maxLength={maxLength}
-                                                disabled={disabled}
-                                                readOnly={readonly}
-                                                dir={locale.direction || 'ltr'}
-                                                className={cn(
-                                                    localeHasError(locale.code) ? 'border-destructive focus-visible:ring-destructive' : '',
-                                                )}
-                                            />
-                                        )}
-                                        {localeError(locale.code) && (
-                                            <p className="text-xs text-destructive">{localeError(locale.code)}</p>
-                                        )}
-                                    </div>
-                                ))}
-                            </PopoverContent>
-                        </Popover>
+                            </DialogTrigger>
+                            <DialogContent className="flex max-h-[85vh] flex-col gap-0 p-0 sm:max-w-xl">
+                                <DialogHeader className="border-b px-6 py-4">
+                                    <DialogTitle>{label || trans('forms::forms.translatable_input.translations')}</DialogTitle>
+                                    <DialogDescription>{trans('forms::forms.translatable_input.description')}</DialogDescription>
+                                </DialogHeader>
+                                <div className="flex-1 space-y-4 overflow-y-auto px-6 py-4">
+                                    {availableLocales.map((locale) => (
+                                        <div key={locale.code} className="space-y-1.5">
+                                            <Label
+                                                htmlFor={`${fieldId}-${locale.code}`}
+                                                className="flex items-center justify-between text-sm"
+                                            >
+                                                <span>{locale.name || locale.code}</span>
+                                                <span className="text-[10px] font-bold uppercase text-muted-foreground">
+                                                    {locale.label || locale.code}
+                                                    {isLocaleRequired(locale.code) && <span className="text-destructive">*</span>}
+                                                </span>
+                                            </Label>
+                                            {multiline ? (
+                                                <UiTextarea
+                                                    id={`${fieldId}-${locale.code}`}
+                                                    value={localValue[locale.code] ?? ''}
+                                                    onChange={(e) => setLocale(locale.code, e.target.value)}
+                                                    rows={rows}
+                                                    maxLength={maxLength}
+                                                    disabled={disabled}
+                                                    readOnly={readonly}
+                                                    dir={locale.direction || 'ltr'}
+                                                    className={cn(
+                                                        localeHasError(locale.code) ? 'border-destructive focus-visible:ring-destructive' : '',
+                                                    )}
+                                                />
+                                            ) : (
+                                                <Input
+                                                    id={`${fieldId}-${locale.code}`}
+                                                    type="text"
+                                                    value={localValue[locale.code] ?? ''}
+                                                    onChange={(e) => setLocale(locale.code, e.target.value)}
+                                                    maxLength={maxLength}
+                                                    disabled={disabled}
+                                                    readOnly={readonly}
+                                                    dir={locale.direction || 'ltr'}
+                                                    className={cn(
+                                                        localeHasError(locale.code) ? 'border-destructive focus-visible:ring-destructive' : '',
+                                                    )}
+                                                />
+                                            )}
+                                            {localeError(locale.code) && (
+                                                <p className="text-xs text-destructive">{localeError(locale.code)}</p>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                                <DialogFooter className="border-t px-6 py-4">
+                                    <Button type="button" onClick={() => setDialogOpen(false)}>
+                                        {trans('forms::forms.translatable_input.done')}
+                                    </Button>
+                                </DialogFooter>
+                            </DialogContent>
+                        </Dialog>
                     )}
                 </div>
 

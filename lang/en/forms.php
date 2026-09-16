@@ -97,5 +97,7 @@ return [
     // TranslatableInput Component
     'translatable_input' => [
         'translations' => 'Translations',
+        'description' => 'Edit this field in every language.',
+        'done' => 'Done',
     ],
 ];

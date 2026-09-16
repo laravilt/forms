@@ -45,7 +45,7 @@ php artisan make:form UserForm --resource
 ### 📝 Basic Fields
 - **TextInput**: Single-line text input with validation
 - **Textarea**: Multi-line text input
-- **TranslatableInput**: Multi-language text input with a per-locale popover
+- **TranslatableInput**: Multi-language text input with a per-locale dialog
 - **NumberField**: Numeric input with min/max
 - **Select**: Dropdown select with search
 - **Checkbox**: Single checkbox
@@ -266,8 +266,9 @@ TextInput::make('name')
 
 A multi-language text field. Its value is an array keyed by locale code
 (`['en' => 'Title', 'ar' => 'العنوان', 'ckb' => 'ناونیشان']`). The main input edits the active
-locale; a globe button inside the input opens a popover with one input per
-locale (RTL locales render with `dir="rtl"`). The globe is hidden when only one
+locale; a globe button inside the input opens a dialog with one input per
+locale (RTL locales render with `dir="rtl"`), so long titles and content stay
+readable. The globe is hidden when only one
 locale is allowed.
 
 ```php
@@ -289,7 +290,7 @@ then `config('app.available_locales')`, then the application locale.
 By default the field reuses the languages the panel already knows about. That
 is the same list the [Locale & Timezone](../auth/profile/preferences.md)
 settings page shows, so a project defines its languages once in
-`config/app.php`; `label` becomes the native name shown in the popover and
+`config/app.php`; `label` becomes the native name shown in the dialog and
 `dir` sets `dir` on each input:
 
 ```php
