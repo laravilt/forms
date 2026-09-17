@@ -91,7 +91,7 @@
                     <DialogTrigger as-child>
                         <button
                             type="button"
-                            class="absolute inset-e-1.5 flex items-center gap-0.5 text-muted-foreground transition-colors hover:text-foreground disabled:pointer-events-none disabled:opacity-50"
+                            class="absolute end-1.5 flex items-center gap-0.5 text-muted-foreground transition-colors hover:text-foreground disabled:pointer-events-none disabled:opacity-50"
                             :class="multiline ? 'top-2' : 'top-1/2 -translate-y-1/2'"
                             :disabled="disabled"
                             :aria-label="trans('forms::forms.translatable_input.translations')"
@@ -316,10 +316,10 @@ const localValue = ref<Translations>(parseTranslations(props.modelValue ?? props
 const active = ref<string>(preferredActive());
 const dialogOpen = ref(false);
 
-// Sync local value when the prop changes from an external source
+// Sync local value when the prop or the allowed locales change (React: effect on incoming + localeCodes)
 watch(
-    () => props.modelValue ?? props.value,
-    (value) => {
+    [() => props.modelValue ?? props.value, localeCodes],
+    ([value]) => {
         const next = parseTranslations(value);
         if (JSON.stringify(next) !== JSON.stringify(localValue.value)) {
             localValue.value = next;

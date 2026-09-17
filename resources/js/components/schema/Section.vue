@@ -109,6 +109,7 @@ const componentMap: Record<string, any> = {
     // Form field components
     text_input: defineAsyncComponent(() => import('../fields/TextInput.vue')),
     textarea: defineAsyncComponent(() => import('../fields/Textarea.vue')),
+    translatable_input: defineAsyncComponent(() => import('../fields/TranslatableInput.vue')),
     select: defineAsyncComponent(() => import('../fields/Select.vue')),
     checkbox: defineAsyncComponent(() => import('../fields/Checkbox.vue')),
     checkbox_list: CheckboxList,

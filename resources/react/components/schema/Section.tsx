@@ -27,6 +27,7 @@ const componentMap: Record<string, AnyComponent> = {
     // Form field components
     text_input: lazy(() => import('../fields/TextInput')),
     textarea: lazy(() => import('../fields/Textarea')),
+    translatable_input: lazy(() => import('../fields/TranslatableInput')),
     select: lazy(() => import('../fields/Select')),
     checkbox: lazy(() => import('../fields/Checkbox')),
     checkbox_list: CheckboxList,
