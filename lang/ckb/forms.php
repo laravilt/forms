@@ -93,4 +93,11 @@ return [
         'search_placeholder' => 'گەڕان بۆ دەسەڵاتەکان...',
         'no_results' => 'هیچ دەسەڵاتێک نەدۆزرایەوە',
     ],
+
+    // TranslatableInput Component
+    'translatable_input' => [
+        'translations' => 'وەرگێڕانەکان',
+        'description' => 'ئەم خانەیە بە هەموو زمانەکان دەستکاری بکە.',
+        'done' => 'تەواو',
+    ],
 ];

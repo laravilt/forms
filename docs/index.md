@@ -45,6 +45,7 @@ php artisan make:form UserForm --resource
 ### 📝 Basic Fields
 - **TextInput**: Single-line text input with validation
 - **Textarea**: Multi-line text input
+- **TranslatableInput**: Multi-language text input with a per-locale dialog
 - **NumberField**: Numeric input with min/max
 - **Select**: Dropdown select with search
 - **Checkbox**: Single checkbox
@@ -259,6 +260,116 @@ TextInput::make('name')
     ->prefix('Mr.')
     ->suffix('@example.com')
     ->helperText('Enter your full name');
+```
+
+### TranslatableInput
+
+A multi-language text field. Its value is an array keyed by locale code
+(`['en' => 'Title', 'ar' => 'العنوان', 'ckb' => 'ناونیشان']`). The main input edits the active
+locale; a globe button inside the input opens a dialog with one input per
+locale (RTL locales render with `dir="rtl"`), so long titles and content stay
+readable. The globe is hidden when only one
+locale is allowed.
+
+```php
+TranslatableInput::make('name')
+    ->label('Name')
+    ->locales(['en', 'ar', 'ckb']) // defaults to the configured locales, see below
+    ->activeLocale('en')           // defaults to the app locale when allowed
+    ->required()                   // every locale is required...
+    ->requiredLocales(['en'])      // ...unless you narrow it down
+    ->maxLength(255)               // applied per locale
+    ->multiline()                  // textarea per locale
+    ->rows(4);
+```
+
+Locales resolve in this order: explicit `locales()`, then
+`config('laravilt-forms.locales')` (published to `config/laravilt-forms.php`),
+then `config('app.available_locales')`, then the application locale.
+
+By default the field reuses the languages the panel already knows about. That
+is the same list the [Locale & Timezone](../auth/profile/preferences.md)
+settings page shows, so a project defines its languages once in
+`config/app.php`; `label` becomes the native name shown in the dialog and
+`dir` sets `dir` on each input:
+
+```php
+// config/app.php
+'available_locales' => [
+    ['value' => 'en', 'label' => 'English', 'dir' => 'ltr'],
+    ['value' => 'ar', 'label' => 'العربية', 'dir' => 'rtl'],
+    ['value' => 'ckb', 'label' => 'کوردی', 'dir' => 'rtl'],
+],
+```
+
+Set `laravilt-forms.locales` only when the languages content is written in
+differ from the languages the UI is shown in, for example an English-only
+admin panel that manages content in three languages. It accepts plain codes or
+per-locale metadata, and an optional `label` overrides the short badge on the
+globe button:
+
+```php
+// config/laravilt-forms.php
+'locales' => [
+    'en' => ['name' => 'English', 'direction' => 'ltr'],
+    'ar' => ['name' => 'العربية', 'direction' => 'rtl'],
+    'ckb' => ['name' => 'کوردی', 'direction' => 'rtl'],
+],
+// or simply: 'locales' => ['en', 'ar', 'ckb'],
+```
+
+Names and directions are looked up in `laravilt-forms.locales` first and
+`app.available_locales` second, so plain codes in the forms config still pick
+up the names the panel defines. A code found in neither is shown as its own
+code, labelled with its uppercased base code, and rendered LTR.
+
+Every locale is validated on its own and errors are reported per locale key
+(`name.en`, `name.ar`, ...), which the field shows next to the matching input.
+`getValidationRules()` returns one rule list for the field, as the schema
+expects, with a `TranslationsRule` carrying the per-locale rules; use
+`getLocaleValidationRules()` for flat keys when validating by hand:
+
+```php
+$field = TranslatableInput::make('name')->locales(['en', 'ar', 'ckb'])->required()->maxLength(120);
+
+$field->getValidationRules();
+// ['required', 'array', TranslationsRule(en|ar|ckb => ['required', 'string', 'max:120'])]
+
+$field->getLocaleValidationRules();
+// [
+//     'name'     => ['required', 'array'],
+//     'name.en'  => ['required', 'string', 'max:120'],
+//     'name.ar'  => ['required', 'string', 'max:120'],
+//     'name.ckb' => ['required', 'string', 'max:120'],
+// ]
+```
+
+Messages use the field label plus the locale, e.g. "The Name (EN) field is
+required.", and `validationMessages(['required' => '...'])` applies to every
+locale (`['en.required' => '...']` targets one).
+
+`hydrateState()` / `dehydrateState()` accept a JSON string, an array or `null`
+and always return an array with every allowed locale present, so the field works
+with both storage styles:
+
+```php
+// spatie/laravel-translatable
+class Product extends Model
+{
+    use \Spatie\Translatable\HasTranslations;
+
+    public $translatable = ['name'];
+}
+
+// or a plain JSON column
+class Category extends Model
+{
+    protected $casts = ['name' => 'array'];
+}
+
+// Both accept the field's value as-is:
+$product->setTranslations('name', $data['name']); // or $product->name = $data['name'];
+$category->name = $data['name'];
 ```
 
 ### Select
@@ -592,6 +703,7 @@ class ProductForm extends Form
 ### Basic
 - TextInput
 - Textarea
+- TranslatableInput
 - NumberField
 - Select
 - Checkbox

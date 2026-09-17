@@ -29,6 +29,7 @@ import LaraviltSlider from './components/fields/Slider';
 import LaraviltTagsInput from './components/fields/TagsInput';
 import LaraviltTextInput from './components/fields/TextInput';
 import LaraviltTextarea from './components/fields/Textarea';
+import LaraviltTranslatableInput from './components/fields/TranslatableInput';
 import LaraviltTimePicker from './components/fields/TimePicker';
 import LaraviltToggle from './components/fields/Toggle';
 import LaraviltToggleButtons from './components/fields/ToggleButtons';
@@ -65,6 +66,7 @@ export { default as Slider } from './components/fields/Slider';
 export { default as TagsInput } from './components/fields/TagsInput';
 export { default as TextInput } from './components/fields/TextInput';
 export { default as Textarea } from './components/fields/Textarea';
+export { default as TranslatableInput } from './components/fields/TranslatableInput';
 export { default as TimePicker } from './components/fields/TimePicker';
 export { default as Toggle } from './components/fields/Toggle';
 export { default as ToggleButtons } from './components/fields/ToggleButtons';
@@ -88,6 +90,7 @@ export default {
             // Field components
             'laravilt-text-input': LaraviltTextInput,
             'laravilt-textarea': LaraviltTextarea,
+            'laravilt-translatable-input': LaraviltTranslatableInput,
             'laravilt-select': LaraviltSelect,
             'laravilt-checkbox': LaraviltCheckbox,
             'laravilt-checkbox-list': LaraviltCheckboxList,

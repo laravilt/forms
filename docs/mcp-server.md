@@ -119,6 +119,7 @@ For MCP tools to provide field type information:
 ### Basic Fields
 - TextInput: Single-line text input
 - Textarea: Multi-line text input
+- TranslatableInput: Multi-language text input (value keyed by locale)
 - NumberField: Numeric input
 - Select: Dropdown select
 - Checkbox: Single checkbox

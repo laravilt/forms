@@ -21,6 +21,7 @@ use Laravilt\Forms\Components\Textarea;
 use Laravilt\Forms\Components\TextInput;
 use Laravilt\Forms\Components\TimePicker;
 use Laravilt\Forms\Components\Toggle;
+use Laravilt\Forms\Components\TranslatableInput;
 use Laravilt\Forms\View\Components\FieldWrapper;
 use Laravilt\Forms\View\Components\Form;
 
@@ -105,6 +106,7 @@ class FormsServiceProvider extends ServiceProvider
             // Basic Fields
             TextInput::class,
             Textarea::class,
+            TranslatableInput::class,
             Select::class,
             Checkbox::class,
             Radio::class,

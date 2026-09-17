@@ -4,6 +4,7 @@ namespace Laravilt\Forms\Concerns;
 
 use Closure;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\RequiredIf;
 
 trait HasValidation
 {
@@ -61,7 +62,33 @@ trait HasValidation
      */
     public function getValidationRules(): string|array|null
     {
-        return $this->evaluate($this->validationRules);
+        $rules = $this->evaluate($this->validationRules);
+
+        if (! method_exists($this, 'isRequired') || ! $this->isRequired()) {
+            return $rules;
+        }
+
+        // required() only sets a flag on the base component. Mirror it as a rule so
+        // validators get it even when other rules (max, email, ...) are present.
+        $list = match (true) {
+            $rules === null, $rules === '', $rules === [] => [],
+            is_string($rules) => explode('|', $rules),
+            default => (array) $rules,
+        };
+
+        foreach ($list as $rule) {
+            if ($rule instanceof RequiredIf) {
+                return $rules;
+            }
+
+            if (is_string($rule) && preg_match('/^(required|nullable|sometimes|present|filled|missing|prohibited|exclude)/', $rule)) {
+                return $rules;
+            }
+        }
+
+        array_unshift($list, 'required');
+
+        return is_string($rules) ? implode('|', $list) : $list;
     }
 
     /**

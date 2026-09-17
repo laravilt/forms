@@ -101,6 +101,34 @@ it('can set validation rules', function () {
     expect($this->field->getValidationRules())->toBe(['required', 'email']);
 });
 
+it('mirrors required() as a validation rule alongside other rules', function () {
+    $this->field->required()->rules(['max:255']);
+
+    expect($this->field->getValidationRules())->toBe(['required', 'max:255']);
+});
+
+it('mirrors required() as a validation rule when there are no other rules', function () {
+    $this->field->required();
+
+    expect($this->field->getValidationRules())->toBe(['required']);
+});
+
+it('keeps string rules as a string when adding required', function () {
+    $this->field->required()->rules('email|max:255');
+
+    expect($this->field->getValidationRules())->toBe('required|email|max:255');
+});
+
+it('does not duplicate or override an explicit presence rule', function () {
+    $this->field->required()->rules(['nullable', 'email']);
+
+    expect($this->field->getValidationRules())->toBe(['nullable', 'email']);
+
+    $this->field->rules(['required', 'email']);
+
+    expect($this->field->getValidationRules())->toBe(['required', 'email']);
+});
+
 it('can add validation rule', function () {
     $this->field->rules(['required']);
 

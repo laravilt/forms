@@ -6,6 +6,7 @@ import LaraviltForm from './components/Form.vue';
 import LaraviltFieldWrapper from './components/FieldWrapper.vue';
 import LaraviltTextInput from './components/fields/TextInput.vue';
 import LaraviltTextarea from './components/fields/Textarea.vue';
+import LaraviltTranslatableInput from './components/fields/TranslatableInput.vue';
 import LaraviltSelect from './components/fields/SelectWrapper.vue';
 import LaraviltCheckbox from './components/fields/Checkbox.vue';
 import LaraviltCheckboxList from './components/fields/CheckboxList.vue';
@@ -45,6 +46,7 @@ export default {
         // Field components
         app.component('laravilt-text-input', LaraviltTextInput);
         app.component('laravilt-textarea', LaraviltTextarea);
+        app.component('laravilt-translatable-input', LaraviltTranslatableInput);
         app.component('laravilt-select', LaraviltSelect);
         app.component('laravilt-checkbox', LaraviltCheckbox);
         app.component('laravilt-checkbox-list', LaraviltCheckboxList);
